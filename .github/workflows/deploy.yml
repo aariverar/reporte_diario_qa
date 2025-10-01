@@ -4,76 +4,99 @@ name: Deploy QA Dashboard to GitHub Pages
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   
   # Permite ejecutar manualmente desde la pestaña Actions
   workflow_dispatch:
 
-# Define permisos para GitHub Pages
+# Define permisos necesarios
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
-# Solo permite un deployment concurrente
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
 jobs:
-  # Job para construir y desplegar el sitio
   deploy:
     runs-on: ubuntu-latest
-    
-    # Solo ejecutar en push a main o workflow manual
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     
     steps:
     - name: 📥 Checkout código
       uses: actions/checkout@v4
-      
-    - name: 🔧 Configurar Node.js
-      uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
         
-    - name: � Preparar directorio de deployment
+    - name: 🔧 Configurar Git
       run: |
-        # Crear directorio de build
-        mkdir -p public
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git config --global init.defaultBranch main
         
-        # Copiar todos los archivos necesarios
-        cp index.html public/
-        cp styles.css public/
-        cp script.js public/
-        cp README.md public/
+    - name: 📂 Verificar archivos del proyecto
+      run: |
+        echo "📁 Contenido del repositorio:"
+        ls -la
+        echo ""
+        echo "🔍 Verificando archivos principales..."
         
-        # Copiar archivos adicionales si existen
-        cp -r *.xlsx public/ 2>/dev/null || echo "No se encontraron archivos .xlsx"
-        cp -r *.html public/ 2>/dev/null || echo "No se encontraron archivos .html adicionales"
-        cp -r *.md public/ 2>/dev/null || echo "No se encontraron archivos .md adicionales"
+        if [ ! -f "index.html" ]; then
+          echo "❌ Error: index.html no encontrado"
+          exit 1
+        fi
         
-        # Crear archivo .nojekyll para evitar procesamiento Jekyll
-        touch public/.nojekyll
+        if [ ! -f "styles.css" ]; then
+          echo "❌ Error: styles.css no encontrado"
+          exit 1
+        fi
         
-        echo "✅ Sitio preparado exitosamente"
-        echo "📁 Contenido de public:"
-        ls -la public/
+        if [ ! -f "script.js" ]; then
+          echo "❌ Error: script.js no encontrado"
+          exit 1
+        fi
         
-    - name: � Deploy to GitHub Pages (Simple)
+        echo "✅ Todos los archivos principales encontrados"
+        
+    - name: 📦 Preparar directorio de deployment
+      run: |
+        echo "🏗️ Preparando archivos para deployment..."
+        
+        # Crear directorio limpio
+        mkdir -p build
+        
+        # Copiar archivos principales
+        cp index.html build/
+        cp styles.css build/
+        cp script.js build/
+        
+        # Copiar README si existe
+        if [ -f "README.md" ]; then
+          cp README.md build/
+        fi
+        
+        # Copiar archivos Excel si existen
+        find . -name "*.xlsx" -maxdepth 1 -exec cp {} build/ \; 2>/dev/null || true
+        
+        # Crear archivo .nojekyll
+        touch build/.nojekyll
+        
+        echo "✅ Archivos preparados:"
+        ls -la build/
+        
+    - name: 🚀 Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
-      if: github.ref == 'refs/heads/main'
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./public
+        publish_dir: ./build
         force_orphan: true
         user_name: 'github-actions[bot]'
         user_email: 'github-actions[bot]@users.noreply.github.com'
-        commit_message: '🚀 Deploy Santander QA Dashboard'
+        commit_message: 'Deploy: Santander QA Dashboard ${{ github.sha }}'
         
-    - name: ✅ Deployment completado
+    - name: ✅ Resultado del deployment
       run: |
-        echo "🎉 Dashboard QA desplegado exitosamente!"
-        echo "🔗 URL: https://aariverar.github.io/reporte_diario_qa/"
-        echo "📊 El dashboard estará disponible en unos minutos"
+        echo "🎉 Deployment completado exitosamente!"
+        echo ""
+        echo "🔗 Tu sitio estará disponible en:"
+        echo "   https://${{ github.repository_owner }}.github.io/reporte_diario_qa/"
+        echo ""
+        echo "⏱️ Puede tomar 2-5 minutos en estar disponible"
+        echo "📋 Recuerda configurar GitHub Pages en Settings si es la primera vez"
