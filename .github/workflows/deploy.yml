@@ -22,9 +22,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Job para construir el sitio
-  build:
+  # Job para construir y desplegar el sitio
+  deploy:
     runs-on: ubuntu-latest
+    
+    # Solo ejecutar en push a main o workflow manual
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     
     steps:
     - name: 📥 Checkout código
@@ -35,68 +38,42 @@ jobs:
       with:
         node-version: '18'
         
-    - name: 📄 Crear archivo de configuración para GitHub Pages
-      run: |
-        echo "# Santander QA Dashboard" > _config.yml
-        echo "title: Dashboard QA - Santander" >> _config.yml
-        echo "description: Sistema de monitoreo y reporte de pruebas de calidad" >> _config.yml
-        echo "url: https://aariverar.github.io" >> _config.yml
-        echo "baseurl: /reporte_diario_qa" >> _config.yml
-        echo "theme: minima" >> _config.yml
-        
-    - name: 🔗 Ajustar rutas para GitHub Pages
-      run: |
-        # Crear una copia del index.html con rutas ajustadas si es necesario
-        cp index.html index.html.backup
-        
-        # Si hay rutas absolutas, convertirlas a relativas para GitHub Pages
-        # sed -i 's|src="/|src="./|g' index.html
-        # sed -i 's|href="/|href="./|g' index.html
-        
-    - name: 📂 Configurar GitHub Pages
-      uses: actions/configure-pages@v4
-      
-    - name: 📦 Construir sitio
+    - name: � Preparar directorio de deployment
       run: |
         # Crear directorio de build
-        mkdir -p _site
+        mkdir -p public
         
         # Copiar todos los archivos necesarios
-        cp index.html _site/
-        cp styles.css _site/
-        cp script.js _site/
-        cp README.md _site/
-        cp -r ./*.xlsx _site/ 2>/dev/null || :
-        cp -r ./*.html _site/ 2>/dev/null || :
-        cp -r ./*.md _site/ 2>/dev/null || :
+        cp index.html public/
+        cp styles.css public/
+        cp script.js public/
+        cp README.md public/
+        
+        # Copiar archivos adicionales si existen
+        cp -r *.xlsx public/ 2>/dev/null || echo "No se encontraron archivos .xlsx"
+        cp -r *.html public/ 2>/dev/null || echo "No se encontraron archivos .html adicionales"
+        cp -r *.md public/ 2>/dev/null || echo "No se encontraron archivos .md adicionales"
         
         # Crear archivo .nojekyll para evitar procesamiento Jekyll
-        touch _site/.nojekyll
+        touch public/.nojekyll
         
-        echo "✅ Sitio construido exitosamente"
-        echo "📁 Contenido de _site:"
-        ls -la _site/
+        echo "✅ Sitio preparado exitosamente"
+        echo "📁 Contenido de public:"
+        ls -la public/
         
-    - name: 📤 Subir artefacto
-      uses: actions/upload-pages-artifact@v3
+    - name: � Deploy to GitHub Pages (Simple)
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main'
       with:
-        path: '_site'
-
-  # Job para hacer el deployment
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    
-    steps:
-    - name: 🚀 Desplegar a GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
-      
-    - name: ✅ Notificación de éxito
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./public
+        force_orphan: true
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        commit_message: '🚀 Deploy Santander QA Dashboard'
+        
+    - name: ✅ Deployment completado
       run: |
         echo "🎉 Dashboard QA desplegado exitosamente!"
-        echo "🔗 URL: ${{ steps.deployment.outputs.page_url }}"
-        echo "📊 El dashboard está disponible en línea"
+        echo "🔗 URL: https://aariverar.github.io/reporte_diario_qa/"
+        echo "📊 El dashboard estará disponible en unos minutos"
