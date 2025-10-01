@@ -1,0 +1,102 @@
+name: Deploy QA Dashboard to GitHub Pages
+
+# Trigger del workflow
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  
+  # Permite ejecutar manualmente desde la pestaña Actions
+  workflow_dispatch:
+
+# Define permisos para GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Solo permite un deployment concurrente
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Job para construir el sitio
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Configurar Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 📄 Crear archivo de configuración para GitHub Pages
+      run: |
+        echo "# Santander QA Dashboard" > _config.yml
+        echo "title: Dashboard QA - Santander" >> _config.yml
+        echo "description: Sistema de monitoreo y reporte de pruebas de calidad" >> _config.yml
+        echo "url: https://aariverar.github.io" >> _config.yml
+        echo "baseurl: /reporte_diario_qa" >> _config.yml
+        echo "theme: minima" >> _config.yml
+        
+    - name: 🔗 Ajustar rutas para GitHub Pages
+      run: |
+        # Crear una copia del index.html con rutas ajustadas si es necesario
+        cp index.html index.html.backup
+        
+        # Si hay rutas absolutas, convertirlas a relativas para GitHub Pages
+        # sed -i 's|src="/|src="./|g' index.html
+        # sed -i 's|href="/|href="./|g' index.html
+        
+    - name: 📂 Configurar GitHub Pages
+      uses: actions/configure-pages@v4
+      
+    - name: 📦 Construir sitio
+      run: |
+        # Crear directorio de build
+        mkdir -p _site
+        
+        # Copiar todos los archivos necesarios
+        cp index.html _site/
+        cp styles.css _site/
+        cp script.js _site/
+        cp README.md _site/
+        cp -r ./*.xlsx _site/ 2>/dev/null || :
+        cp -r ./*.html _site/ 2>/dev/null || :
+        cp -r ./*.md _site/ 2>/dev/null || :
+        
+        # Crear archivo .nojekyll para evitar procesamiento Jekyll
+        touch _site/.nojekyll
+        
+        echo "✅ Sitio construido exitosamente"
+        echo "📁 Contenido de _site:"
+        ls -la _site/
+        
+    - name: 📤 Subir artefacto
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: '_site'
+
+  # Job para hacer el deployment
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: 🚀 Desplegar a GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+      
+    - name: ✅ Notificación de éxito
+      run: |
+        echo "🎉 Dashboard QA desplegado exitosamente!"
+        echo "🔗 URL: ${{ steps.deployment.outputs.page_url }}"
+        echo "📊 El dashboard está disponible en línea"
