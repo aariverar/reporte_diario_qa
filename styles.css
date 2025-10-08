@@ -168,7 +168,8 @@ body::before {
 }
 
 .btn-upload,
-.btn-editor {
+.btn-editor,
+.btn-pdf {
     display: flex;
     align-items: center;
     gap: 0.4rem;
@@ -187,7 +188,8 @@ body::before {
 }
 
 .btn-upload:hover,
-.btn-editor:hover {
+.btn-editor:hover,
+.btn-pdf:hover {
     background: white;
     border-color: white;
     color: var(--primary-dark);
@@ -204,6 +206,18 @@ body::before {
 .btn-editor:hover {
     background: #28a745;
     border-color: #28a745;
+    color: white;
+}
+
+.btn-pdf {
+    background: rgba(220, 53, 69, 0.95);
+    border-color: rgba(220, 53, 69, 0.8);
+    color: white;
+}
+
+.btn-pdf:hover {
+    background: #dc3545;
+    border-color: #dc3545;
     color: white;
 }
 
@@ -1669,5 +1683,187 @@ body::before {
     
     .footer-credits {
         font-size: 0.8rem;
+    }
+}
+
+/* PDF Export Styles - Optimizado para capturas idénticas */
+.pdf-mode {
+    background: white !important;
+    color: #000 !important;
+}
+
+.pdf-mode .header {
+    background: linear-gradient(135deg, #EC0000 0%, #C80000 100%) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+
+/* Ocultar elementos de interfaz durante captura */
+.pdf-mode .chart-expand-btn,
+.pdf-mode .btn-upload,
+.pdf-mode .btn-pdf,
+.pdf-mode .btn-editor,
+.pdf-mode .file-upload-container input,
+.pdf-mode button:not(.pdf-capture),
+.pdf-mode .controls,
+.pdf-mode .navbar,
+.pdf-mode .sidebar,
+.pdf-mode .table-controls .search-box,
+.pdf-mode .table-controls .filter-controls,
+.pdf-mode .table-controls .btn-export,
+.pdf-mode .pagination-container,
+.pdf-mode .footer {
+    display: none !important;
+}
+
+/* Optimizar secciones para captura perfecta y compacta */
+.pdf-mode .project-section,
+.pdf-mode .kpi-section,
+.pdf-mode .charts-section {
+    background: white !important;
+    margin: 0 !important;
+    padding: 15px !important; /* Reducido de 20px a 15px */
+    border: none !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+}
+
+/* Optimizar tarjetas de proyecto para ser más compactas */
+.pdf-mode .project-details-card {
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 8px !important; /* Reducido de 12px a 8px */
+    padding: 15px !important; /* Reducido de 20px a 15px */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important; /* Sombra más sutil */
+}
+
+/* Optimizar tarjetas KPI para ser más compactas */
+.pdf-mode .kpi-card {
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 8px !important; /* Reducido de 12px a 8px */
+    padding: 12px !important; /* Reducido de 20px a 12px */
+    margin: 4px !important; /* Reducido de 8px a 4px */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important; /* Sombra más sutil */
+}
+
+/* Optimizar contenedores de gráficos para ser más compactos */
+.pdf-mode .chart-container {
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 8px !important; /* Reducido de 12px a 8px */
+    padding: 10px !important; /* Reducido de 15px a 10px */
+    margin: 5px !important; /* Reducido de 10px a 5px */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important; /* Sombra más sutil */
+    page-break-inside: avoid !important;
+}
+
+/* Reducir tamaños de fuente para compactar */
+.pdf-mode .project-details-grid .detail-item label {
+    font-size: 12px !important; /* Más pequeño */
+    font-weight: 600 !important;
+}
+
+.pdf-mode .project-details-grid .detail-item span {
+    font-size: 12px !important; /* Más pequeño */
+}
+
+.pdf-mode .kpi-card h3 {
+    font-size: 13px !important; /* Más pequeño */
+    margin-bottom: 5px !important;
+}
+
+.pdf-mode .kpi-value .number {
+    font-size: 22px !important; /* Reducido */
+}
+
+.pdf-mode .chart-header h3 {
+    color: #EC0000 !important;
+    font-size: 14px !important; /* Reducido de 16px a 14px */
+    font-weight: 600 !important;
+    margin-bottom: 8px !important; /* Reducido */
+}
+
+/* Asegurar que los gráficos se vean correctamente */
+.pdf-mode [id*="Chart"],
+.pdf-mode .chart {
+    background: white !important;
+    min-height: 300px !important;
+    width: 100% !important;
+}
+
+.pdf-mode .plot-container {
+    background: white !important;
+}
+
+/* Mejorar tipografía para captura */
+.pdf-mode h1, 
+.pdf-mode h2, 
+.pdf-mode h3, 
+.pdf-mode h4, 
+.pdf-mode h5, 
+.pdf-mode h6 {
+    color: #333 !important;
+    font-weight: bold !important;
+}
+
+.pdf-mode .chart-header h3 {
+    color: #EC0000 !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+}
+
+/* Optimizar progreso bars para captura */
+.pdf-mode .progress-bar {
+    background: #f0f0f0 !important;
+    border: 1px solid #ddd !important;
+}
+
+.pdf-mode .progress-fill {
+    background: linear-gradient(90deg, #EC0000, #ff4444) !important;
+}
+
+/* Optimizar tablas para captura */
+.pdf-mode .table-container {
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 8px !important;
+    padding: 15px !important;
+    margin: 10px 0 !important;
+}
+
+/* Asegurar colores consistentes */
+.pdf-mode .kpi-card.planned {
+    border-left: 4px solid #f59e0b !important;
+}
+
+.pdf-mode .kpi-card.success {
+    border-left: 4px solid #10b981 !important;
+}
+
+.pdf-mode .kpi-card.failure {
+    border-left: 4px solid #ef4444 !important;
+}
+
+.pdf-mode .kpi-card.pending {
+    border-left: 4px solid #8b5cf6 !important;
+}
+
+.pdf-mode .kpi-card.blocked {
+    border-left: 4px solid #6b7280 !important;
+}
+
+/* PDF Page Breaks */
+@media print {
+    .pdf-page-break {
+        page-break-before: always !important;
+    }
+    
+    .chart-container {
+        page-break-inside: avoid !important;
+    }
+    
+    .kpi-section {
+        page-break-inside: avoid !important;
     }
 }

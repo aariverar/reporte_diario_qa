@@ -3659,3 +3659,768 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
+// ========================================
+// FUNCIONES PARA GENERAR PDF
+// ========================================
+
+// Función de manejo para verificar librerías antes de generar PDF
+function handlePDFGeneration() {
+    if (!checkPDFLibraries()) {
+        showNotification('Las librerías necesarias para PDF no están disponibles. Verifique su conexión a internet.', 'error');
+        return;
+    }
+    
+    generatePDFReport();
+}
+
+// Función principal para generar el PDF exactamente como el dashboard
+async function generatePDFReport() {
+    // Mostrar mensaje de carga
+    showNotification('Generando reporte PDF idéntico al dashboard...', 'info');
+    
+    try {
+        // Verificar si las librerías están disponibles
+        if (!window.jspdf) {
+            throw new Error('jsPDF no está cargado. Verifique la conexión a internet.');
+        }
+        
+        if (!window.html2canvas) {
+            throw new Error('html2canvas no está cargado. Verifique la conexión a internet.');
+        }
+        
+        // Crear instancia de jsPDF
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        // Activar modo PDF (ocultar elementos innecesarios)
+        document.body.classList.add('pdf-mode');
+        
+        // Esperar un momento para que se apliquen los estilos
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Configuración de la página
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 10;
+        const contentWidth = pageWidth - (margin * 2);
+        let currentY = margin;
+        
+        console.log('📄 Iniciando generación PDF idéntico al dashboard...');
+        
+        // === PÁGINA ÚNICA: HEADER + INFORMACIÓN DEL PROYECTO + KPIs + GRÁFICOS ===
+        await addPDFHeader(pdf, currentY);
+        currentY += 25; // Reducido de 30 a 25
+        
+        // 1. CAPTURAR INFORMACIÓN DEL PROYECTO (compacta)
+        console.log('📸 Capturando información del proyecto compacta...');
+        const projectSection = document.querySelector('.project-section');
+        if (projectSection) {
+            try {
+                const projectCanvas = await html2canvas(projectSection, {
+                    scale: 1.5, // Reducido de 2 a 1.5
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    width: projectSection.scrollWidth,
+                    height: projectSection.scrollHeight
+                });
+                
+                const projectImgData = projectCanvas.toDataURL('image/png');
+                const projectImgWidth = contentWidth;
+                const originalProjectHeight = (projectCanvas.height * projectImgWidth) / projectCanvas.width;
+                
+                // Limitar la altura máxima del proyecto para que quepa todo
+                const maxProjectHeight = 50; // Máximo 50mm para información del proyecto
+                const projectImgHeight = Math.min(originalProjectHeight, maxProjectHeight);
+                
+                pdf.addImage(projectImgData, 'PNG', margin, currentY, projectImgWidth, projectImgHeight);
+                currentY += projectImgHeight + 5; // Reducido espacio
+                console.log('✅ Información del proyecto capturada (compacta)');
+            } catch (error) {
+                console.warn('⚠️ Error capturando información del proyecto:', error);
+                currentY += 10;
+            }
+        }
+        
+        // 2. CAPTURAR TARJETAS KPI (compactas)
+        console.log('📸 Capturando tarjetas KPI compactas...');
+        const kpiSection = document.querySelector('.kpi-section');
+        if (kpiSection) {
+            try {
+                const kpiCanvas = await html2canvas(kpiSection, {
+                    scale: 1.5, // Reducido de 2 a 1.5
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    width: kpiSection.scrollWidth,
+                    height: kpiSection.scrollHeight
+                });
+                
+                const kpiImgData = kpiCanvas.toDataURL('image/png');
+                const kpiImgWidth = contentWidth;
+                const originalKpiHeight = (kpiCanvas.height * kpiImgWidth) / kpiCanvas.width;
+                
+                // Limitar la altura máxima de KPIs
+                const maxKpiHeight = 35; // Máximo 35mm para KPIs
+                const kpiImgHeight = Math.min(originalKpiHeight, maxKpiHeight);
+                
+                pdf.addImage(kpiImgData, 'PNG', margin, currentY, kpiImgWidth, kpiImgHeight);
+                currentY += kpiImgHeight + 5; // Reducido espacio
+                console.log('✅ Tarjetas KPI capturadas (compactas)');
+            } catch (error) {
+                console.warn('⚠️ Error capturando tarjetas KPI:', error);
+                currentY += 10;
+            }
+        }
+        
+        // === CONTINUAR EN LA MISMA PÁGINA: GRÁFICOS SIN TÍTULO ===
+        // Verificar espacio disponible, si no hay suficiente, usar nueva página
+        const remainingSpace = pageHeight - currentY - margin;
+        const minSpaceNeeded = 120; // Espacio mínimo para gráficos
+        
+        if (remainingSpace < minSpaceNeeded) {
+            pdf.addPage();
+            currentY = margin;
+        }
+        
+        // 3. CAPTURAR TODA LA SECCIÓN DE GRÁFICOS DE UNA VEZ (SIN TÍTULO)
+        console.log('📸 Capturando sección completa de gráficos compacta...');
+        const chartsSection = document.querySelector('.charts-section');
+        if (chartsSection) {
+            try {
+                // Capturar toda la sección de gráficos como una sola imagen
+                const chartsCanvas = await html2canvas(chartsSection, {
+                    scale: 1.2, // Reducido de 1.5 a 1.2 para que sea más compacto
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    width: chartsSection.scrollWidth,
+                    height: chartsSection.scrollHeight
+                });
+                
+                const chartsImgData = chartsCanvas.toDataURL('image/png');
+                const maxChartsWidth = contentWidth;
+                const originalChartsHeight = (chartsCanvas.height * maxChartsWidth) / chartsCanvas.width;
+                
+                // Calcular el espacio disponible en la página actual
+                const availableHeight = pageHeight - currentY - margin - 10; // 10mm para footer
+                
+                // Si los gráficos caben en el espacio restante, mantenerlos en la misma página
+                if (originalChartsHeight <= availableHeight) {
+                    pdf.addImage(chartsImgData, 'PNG', margin, currentY, maxChartsWidth, originalChartsHeight);
+                    console.log('✅ Todos los gráficos incluidos en la misma página');
+                } else {
+                    // Escalar los gráficos para que quepan en el espacio disponible
+                    const scaledHeight = availableHeight;
+                    const scaledWidth = (chartsCanvas.width * scaledHeight) / chartsCanvas.height;
+                    
+                    // Si el ancho escalado es menor que el ancho disponible, usar ese tamaño
+                    if (scaledWidth <= maxChartsWidth) {
+                        const centerX = margin + (maxChartsWidth - scaledWidth) / 2;
+                        pdf.addImage(chartsImgData, 'PNG', centerX, currentY, scaledWidth, scaledHeight);
+                        console.log('✅ Gráficos escalados para caber en una página');
+                    } else {
+                        // Si aún no cabe, usar el ancho completo y escalar proporcionalmente
+                        const finalHeight = Math.min(originalChartsHeight, availableHeight * 0.9);
+                        pdf.addImage(chartsImgData, 'PNG', margin, currentY, maxChartsWidth, finalHeight);
+                        console.log('✅ Gráficos comprimidos para una página');
+                    }
+                }
+                
+            } catch (error) {
+                console.warn('⚠️ Error capturando sección de gráficos:', error);
+                
+                // Fallback: capturar gráficos individualmente de forma compacta
+                await captureIndividualChartsCompact(pdf, margin, contentWidth, pageHeight, currentY);
+            }
+        } else {
+            // Fallback: capturar gráficos individualmente de forma compacta
+            await captureIndividualChartsCompact(pdf, margin, contentWidth, pageHeight, currentY);
+        }
+        
+        // Agregar footer en todas las páginas
+        addPDFFooter(pdf);
+        
+        // Desactivar modo PDF
+        document.body.classList.remove('pdf-mode');
+        
+        // Generar nombre del archivo
+        const projectName = testData.projectInfo.name || 'Dashboard QA';
+        const currentDate = new Date().toLocaleDateString('es-ES').replace(/\//g, '-');
+        const fileName = `Reporte_QA_${projectName.replace(/\s+/g, '_')}_${currentDate}.pdf`;
+        
+        console.log('💾 Guardando PDF:', fileName);
+        console.log('📊 PDF generado exactamente como el dashboard (sin tablas)');
+        
+        // Descargar el PDF
+        pdf.save(fileName);
+        
+        showNotification('PDF generado exactamente como el dashboard', 'success');
+        
+    } catch (error) {
+        console.error('Error generando PDF:', error);
+        showNotification(`Error al generar PDF: ${error.message}`, 'error');
+        document.body.classList.remove('pdf-mode');
+    }
+}
+
+// Función auxiliar para capturar gráficos individuales de forma compacta
+async function captureIndividualChartsCompact(pdf, margin, contentWidth, pageHeight, startY) {
+    console.log('📸 Capturando gráficos individuales compactos...');
+    
+    const specificChartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart', 'coverageChart'];
+    
+    let chartsPerRow = 3; // 3 gráficos por fila para ser más compacto
+    let chartIndex = 0;
+    let currentY = startY;
+    
+    // Calcular tamaños más pequeños para que quepan todos
+    const availableHeight = pageHeight - currentY - margin - 10;
+    const chartWidth = (contentWidth - 10) / 3; // Dividir en 3 columnas
+    const maxChartHeight = availableHeight / 2; // Máximo 2 filas
+    
+    for (const chartId of specificChartIds) {
+        const chartElement = document.getElementById(chartId);
+        
+        if (chartElement) {
+            try {
+                const chartCanvas = await html2canvas(chartElement, {
+                    scale: 1, // Escala reducida para ser más compacto
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+                
+                const chartImgData = chartCanvas.toDataURL('image/png');
+                const originalChartHeight = (chartCanvas.height * chartWidth) / chartCanvas.width;
+                const chartHeight = Math.min(originalChartHeight, maxChartHeight);
+                
+                // Calcular posición en grid 3x2
+                const col = chartIndex % chartsPerRow;
+                const row = Math.floor(chartIndex / chartsPerRow);
+                
+                const x = margin + (col * (chartWidth + 5));
+                const y = currentY + (row * (chartHeight + 8));
+                
+                pdf.addImage(chartImgData, 'PNG', x, y, chartWidth, chartHeight);
+                chartIndex++;
+                
+            } catch (error) {
+                console.warn(`⚠️ Error capturando gráfico ${chartId}:`, error);
+            }
+        }
+    }
+    
+    console.log(`✅ ${chartIndex} gráficos capturados en formato compacto`);
+}
+
+// Función auxiliar para capturar gráficos individuales (fallback original)
+async function captureIndividualCharts(pdf, margin, contentWidth, pageHeight) {
+    console.log('📸 Capturando gráficos individuales...');
+    
+    const specificChartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart', 'coverageChart'];
+    
+    let chartsPerRow = 2;
+    let chartIndex = 0;
+    let currentY = margin + 40;
+    
+    for (const chartId of specificChartIds) {
+        const chartElement = document.getElementById(chartId);
+        
+        if (chartElement) {
+            try {
+                const chartCanvas = await html2canvas(chartElement, {
+                    scale: 1.5,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+                
+                const chartImgData = chartCanvas.toDataURL('image/png');
+                const chartWidth = (contentWidth - 5) / 2;
+                const chartHeight = (chartCanvas.height * chartWidth) / chartCanvas.width;
+                
+                const isLeftColumn = (chartIndex % chartsPerRow) === 0;
+                const x = isLeftColumn ? margin : margin + chartWidth + 5;
+                
+                if (currentY + chartHeight > pageHeight - margin) {
+                    pdf.addPage();
+                    currentY = margin + 20;
+                    chartIndex = 0;
+                }
+                
+                const finalY = (chartIndex % chartsPerRow) === 0 ? currentY : currentY;
+                const finalX = isLeftColumn ? margin : margin + chartWidth + 5;
+                
+                pdf.addImage(chartImgData, 'PNG', finalX, finalY, chartWidth, chartHeight);
+                
+                if ((chartIndex % chartsPerRow) === 1) {
+                    currentY += chartHeight + 10;
+                }
+                
+                chartIndex++;
+                
+            } catch (error) {
+                console.warn(`⚠️ Error capturando gráfico ${chartId}:`, error);
+            }
+        }
+    }
+}
+
+// Función para agregar el header del PDF
+async function addPDFHeader(pdf, startY) {
+    // Logo y título principal
+    pdf.setFillColor(236, 0, 0); // Rojo Santander
+    pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 30, 'F');
+    
+    // Título principal
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(18);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('Santander - Dashboard QA', 15, 15);
+    
+    // Subtítulo
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Reporte de Ejecución Diaria de Pruebas', 15, 22);
+    
+    // Fecha de generación
+    const currentDate = new Date().toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(10);
+    pdf.text(`Generado: ${currentDate}`, pdf.internal.pageSize.getWidth() - 15, 22, { align: 'right' });
+}
+
+// Función para agregar información del proyecto
+async function addProjectInfo(pdf, startY, contentWidth) {
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(14);
+    pdf.text('Información del Proyecto', 15, startY);
+    
+    // Línea separadora
+    pdf.setDrawColor(236, 0, 0);
+    pdf.setLineWidth(0.5);
+    pdf.line(15, startY + 2, 15 + contentWidth, startY + 2);
+    
+    startY += 15;
+    
+    // Layout más compacto - etiqueta:valor en la misma línea
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    
+    // Dos columnas principales con separación mínima
+    const leftColumnStart = 15;
+    const rightColumnStart = 300; // Posición fija para segunda columna
+    
+    // Fila 1: Proyecto y Responsable
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Proyecto: ', leftColumnStart, startY);
+    pdf.setFont('helvetica', 'normal');
+    // Calcular posición después del label
+    const proyectoLabelWidth = pdf.getTextWidth('Proyecto: ');
+    const projectName = testData.projectInfo.name.length > 20 ? 
+                       testData.projectInfo.name.substring(0, 20) + '...' : 
+                       testData.projectInfo.name;
+    pdf.text(projectName, leftColumnStart + proyectoLabelWidth, startY);
+    
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Responsable: ', rightColumnStart, startY);
+    pdf.setFont('helvetica', 'normal');
+    const responsableLabelWidth = pdf.getTextWidth('Responsable: ');
+    pdf.text(testData.projectInfo.qaResponsible, rightColumnStart + responsableLabelWidth, startY);
+    
+    startY += 12;
+    
+    // Fila 2: Fechas
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Inicio: ', leftColumnStart, startY);
+    pdf.setFont('helvetica', 'normal');
+    const inicioLabelWidth = pdf.getTextWidth('Inicio: ');
+    pdf.text(testData.projectInfo.startDate, leftColumnStart + inicioLabelWidth, startY);
+    
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Cierre: ', rightColumnStart, startY);
+    pdf.setFont('helvetica', 'normal');
+    const cierreLabelWidth = pdf.getTextWidth('Cierre: ');
+    pdf.text(testData.projectInfo.endDate, rightColumnStart + cierreLabelWidth, startY);
+    
+    startY += 12;
+    
+    // Fila 3: Estado y Progreso compacto
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Estado: ', leftColumnStart, startY);
+    pdf.setFont('helvetica', 'normal');
+    const estadoLabelWidth = pdf.getTextWidth('Estado: ');
+    pdf.text(testData.projectInfo.status, leftColumnStart + estadoLabelWidth, startY);
+    
+    const realProgress = calculateProjectProgress();
+    const plannedProgress = calculatePlannedProgress();
+    
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Progreso: ', rightColumnStart, startY);
+    pdf.setFont('helvetica', 'normal');
+    const progresoLabelWidth = pdf.getTextWidth('Progreso: ');
+    pdf.text(`${plannedProgress.toFixed(1)}% / ${realProgress.toFixed(1)}%`, rightColumnStart + progresoLabelWidth, startY);
+}
+
+// Función para agregar resumen de KPIs
+async function addKPISummary(pdf, startY, contentWidth) {
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(14);
+    pdf.text('Resumen de Resultados', 15, startY);
+    
+    // Línea separadora
+    pdf.setDrawColor(236, 0, 0);
+    pdf.line(15, startY + 2, 15 + contentWidth, startY + 2);
+    
+    startY += 12; // Reducido de 15 a 12
+    
+    // KPIs más compactos para formato A4
+    const totalKPIs = 5;
+    const kpiSpacing = 3; // Reducido de 5 a 3
+    const totalSpacing = kpiSpacing * (totalKPIs - 1);
+    const kpiWidth = (contentWidth - totalSpacing) / totalKPIs;
+    const kpiHeight = 18; // Reducido de 20 a 18
+    
+    const kpis = [
+        { 
+            label: 'Planificadas', 
+            value: testData.summary.planned, 
+            color: [245, 158, 11],
+            icon: '◷'
+        },
+        { 
+            label: 'Exitosas', 
+            value: testData.summary.successful, 
+            color: [16, 185, 129],
+            icon: '✓'
+        },
+        { 
+            label: 'Fallidas', 
+            value: testData.summary.failed, 
+            color: [239, 68, 68],
+            icon: '✗'
+        },
+        { 
+            label: 'Pendientes', 
+            value: testData.summary.pending, 
+            color: [139, 92, 246],
+            icon: '○'
+        },
+        { 
+            label: 'Bloqueadas', 
+            value: testData.summary.blocked || 0, 
+            color: [107, 114, 128],
+            icon: '⬛'
+        }
+    ];
+    
+    let x = 15;
+    const y = startY;
+    
+    kpis.forEach((kpi, index) => {
+        // Fondo del KPI con color más claro
+        const lightColor = kpi.color.map(c => Math.min(255, c + (255 - c) * 0.85));
+        pdf.setFillColor(lightColor[0], lightColor[1], lightColor[2]);
+        pdf.rect(x, y, kpiWidth, kpiHeight, 'F');
+        
+        // Borde
+        pdf.setDrawColor(kpi.color[0], kpi.color[1], kpi.color[2]);
+        pdf.setLineWidth(0.3);
+        pdf.rect(x, y, kpiWidth, kpiHeight);
+        
+        // Texto del valor (número) - centrado y más compacto
+        pdf.setTextColor(kpi.color[0], kpi.color[1], kpi.color[2]);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11); // Reducido de 12 a 11
+        const valueText = kpi.value.toString();
+        const valueWidth = pdf.getTextWidth(valueText);
+        pdf.text(valueText, x + (kpiWidth - valueWidth) / 2, y + 8); // Ajustado de 9 a 8
+        
+        // Texto del label - centrado y más pequeño
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7); // Reducido de 8 a 7
+        pdf.setTextColor(0, 0, 0);
+        const labelWidth = pdf.getTextWidth(kpi.label);
+        pdf.text(kpi.label, x + (kpiWidth - labelWidth) / 2, y + 15); // Ajustado de 17 a 15
+        
+        x += kpiWidth + kpiSpacing;
+    });
+}
+
+// Función para agregar gráficos al PDF
+async function addChartsToPDF(pdf, startY, contentWidth) {
+    try {
+        // Verificar si Plotly está disponible
+        if (!window.Plotly) {
+            console.warn('Plotly no está disponible, omitiendo gráficos');
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(12);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text('Los gráficos no están disponibles en este reporte.', 15, startY + 20);
+            return;
+        }
+        
+        const chartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart'];
+        const chartTitles = [
+            'Distribución de Resultados',
+            'Tendencia de Ejecución',
+            'Pruebas por Escenario',
+            'Gestión de Defectos',
+            'Cycle Time de Defectos'
+        ];
+        const chartsPerRow = 2;
+        const chartWidth = (contentWidth - 10) / chartsPerRow;
+        const chartHeight = 60;
+        const titleHeight = 8; // Espacio para títulos
+        
+        let currentX = 15;
+        let currentY = startY;
+        let chartsAdded = 0;
+        
+        console.log('📊 Capturando gráficos para PDF usando Plotly.toImage...');
+        
+        for (let i = 0; i < chartIds.length; i++) {
+            const chartElement = document.getElementById(chartIds[i]);
+            
+            if (chartElement && chartElement.querySelector('.plotly-graph-div')) {
+                try {
+                    console.log(`📈 Capturando gráfico: ${chartIds[i]}`);
+                    
+                    // Agregar título del gráfico
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(9);
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.text(chartTitles[i], currentX + chartWidth/2, currentY + 5, { align: 'center' });
+                    
+                    // Usar Plotly.toImage para exportar directamente
+                    const imgData = await Plotly.toImage(chartElement, {
+                        format: 'png',
+                        width: chartWidth * 4, // Multiplicar por factor de escala
+                        height: chartHeight * 4,
+                        scale: 1
+                    });
+                    
+                    // Agregar al PDF (con offset para el título)
+                    pdf.addImage(imgData, 'PNG', currentX, currentY + titleHeight, chartWidth, chartHeight);
+                    chartsAdded++;
+                    
+                    console.log(`✅ Gráfico ${chartIds[i]} agregado al PDF`);
+                    
+                    // Calcular posición para el siguiente gráfico
+                    if ((chartsAdded) % chartsPerRow === 0) {
+                        // Nueva fila
+                        currentX = 15;
+                        currentY += chartHeight + titleHeight + 15; // Espacio para título + gráfico + separación
+                        
+                        // Verificar si necesitamos nueva página
+                        if (currentY + chartHeight + titleHeight > pdf.internal.pageSize.getHeight() - 30) {
+                            pdf.addPage();
+                            currentY = 15;
+                        }
+                    } else {
+                        // Siguiente columna
+                        currentX += chartWidth + 5;
+                    }
+                    
+                } catch (chartError) {
+                    console.warn(`⚠️ Error capturando gráfico ${chartIds[i]}:`, chartError);
+                    
+                    // Agregar título incluso para placeholder
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(9);
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.text(chartTitles[i], currentX + chartWidth/2, currentY + 5, { align: 'center' });
+                    
+                    // Agregar placeholder para el gráfico fallido
+                    pdf.setDrawColor(200, 200, 200);
+                    pdf.setFillColor(245, 245, 245);
+                    pdf.rect(currentX, currentY + titleHeight, chartWidth, chartHeight, 'FD');
+                    
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(100, 100, 100);
+                    pdf.text('Gráfico no disponible', currentX + chartWidth/2, currentY + titleHeight + chartHeight/2, { align: 'center' });
+                    
+                    // Continuar con el siguiente gráfico
+                    if ((i + 1) % chartsPerRow === 0) {
+                        currentX = 15;
+                        currentY += chartHeight + titleHeight + 15;
+                        if (currentY + chartHeight + titleHeight > pdf.internal.pageSize.getHeight() - 30) {
+                            pdf.addPage();
+                            currentY = 15;
+                        }
+                    } else {
+                        currentX += chartWidth + 5;
+                    }
+                }
+            } else {
+                console.warn(`⚠️ Gráfico ${chartIds[i]} no encontrado o no tiene datos`);
+            }
+        }
+        
+        console.log(`📊 Total de gráficos agregados al PDF: ${chartsAdded}/${chartIds.length}`);
+        
+    } catch (error) {
+        console.error('❌ Error general agregando gráficos al PDF:', error);
+        // Agregar mensaje de error en el PDF
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(12);
+        pdf.setTextColor(200, 0, 0);
+        pdf.text('Error cargando gráficos. Consulte la consola para más detalles.', 15, startY + 20);
+    }
+}
+
+// Función para agregar tablas al PDF
+async function addTablesToPDF(pdf, startY, contentWidth) {
+    // Tabla de defectos (simplificada)
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.text('Resumen de Defectos por Severidad', 15, startY);
+    
+    startY += 10;
+    
+    // Headers de la tabla
+    const headers = ['Severidad', 'Cantidad', 'Estado'];
+    const colWidths = [40, 30, 40];
+    let tableX = 15;
+    
+    // Header
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(tableX, startY, colWidths.reduce((a, b) => a + b, 0), 8, 'F');
+    
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(0, 0, 0);
+    
+    let currentX = tableX + 2;
+    headers.forEach((header, index) => {
+        pdf.text(header, currentX, startY + 5);
+        currentX += colWidths[index];
+    });
+    
+    // Datos de defectos
+    const defectRows = [
+        ['Crítica', testData.defects.summary.critical.toString(), 'Requiere atención'],
+        ['Alta', testData.defects.summary.high.toString(), 'Importante'],
+        ['Media', testData.defects.summary.medium.toString(), 'Moderada'],
+        ['Baja', testData.defects.summary.low.toString(), 'Menor']
+    ];
+    
+    startY += 8;
+    pdf.setFont('helvetica', 'normal');
+    
+    defectRows.forEach((row, rowIndex) => {
+        currentX = tableX + 2;
+        row.forEach((cell, cellIndex) => {
+            pdf.text(cell, currentX, startY + 5);
+            currentX += colWidths[cellIndex];
+        });
+        
+        // Línea separadora
+        pdf.setDrawColor(200, 200, 200);
+        pdf.line(tableX, startY + 8, tableX + colWidths.reduce((a, b) => a + b, 0), startY + 8);
+        startY += 8;
+    });
+    
+    // Estadísticas adicionales
+    startY += 10;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.text('Estadísticas del Proyecto:', 15, startY);
+    
+    startY += 8;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    
+    const totalTests = testData.summary.successful + testData.summary.failed + 
+                      testData.summary.pending + testData.summary.planned + 
+                      (testData.summary.blocked || 0);
+    
+    const stats = [
+        `Total de Pruebas: ${totalTests}`,
+        `Tasa de Éxito: ${((testData.summary.successful / totalTests) * 100).toFixed(1)}%`,
+        `Tasa de Falla: ${((testData.summary.failed / totalTests) * 100).toFixed(1)}%`,
+        `Defectos Críticos/Altos: ${testData.defects.summary.critical + testData.defects.summary.high}`
+    ];
+    
+    stats.forEach(stat => {
+        pdf.text(`• ${stat}`, 20, startY);
+        startY += 6;
+    });
+}
+
+// Función para agregar títulos de sección
+async function addPDFSectionTitle(pdf, title, y) {
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(14);
+    pdf.setTextColor(236, 0, 0);
+    pdf.text(title, 15, y);
+    
+    // Línea decorativa
+    pdf.setDrawColor(236, 0, 0);
+    pdf.setLineWidth(0.5);
+    pdf.line(15, y + 2, 15 + pdf.getTextWidth(title), y + 2);
+}
+
+// Función para agregar footer a todas las páginas
+function addPDFFooter(pdf) {
+    const totalPages = pdf.internal.getNumberOfPages();
+    
+    for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        
+        // Footer
+        const footerY = pdf.internal.pageSize.getHeight() - 15;
+        
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 100, 100);
+        
+        // Copyright
+        pdf.text('© Santander Consumer Bank - Aseguramiento de Calidad', 15, footerY);
+        
+        // Número de página
+        pdf.text(`Página ${i} de ${totalPages}`, pdf.internal.pageSize.getWidth() - 15, footerY, { align: 'right' });
+        
+        // Información de contacto
+        pdf.text('Powered by Equipo QA | Support: arivera_scb@santander.com.pe', 15, footerY + 5);
+    }
+}
+
+// Verificar que las librerías PDF estén disponibles
+function checkPDFLibraries() {
+    const libraries = {
+        jsPDF: window.jspdf,
+        html2canvas: window.html2canvas
+    };
+    
+    const missing = Object.keys(libraries).filter(lib => !libraries[lib]);
+    
+    if (missing.length > 0) {
+        console.warn('⚠️ Librerías PDF faltantes:', missing);
+        return false;
+    }
+    
+    console.log('✅ Librerías PDF disponibles');
+    return true;
+}
+
+// Verificar librerías cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        checkPDFLibraries();
+    }, 2000); // Verificar después de 2 segundos para asegurar que las librerías se carguen
+});
+
