@@ -116,19 +116,42 @@ function calculatePlannedProgress() {
         const startDateStr = testData.projectInfo.startDate;
         const endDateStr = testData.projectInfo.endDate;
         
-        // Convertir fechas DD/MM/YYYY a objetos Date
-        const [startDay, startMonth, startYear] = startDateStr.split('/').map(Number);
-        const [endDay, endMonth, endYear] = endDateStr.split('/').map(Number);
+        console.log(`Fechas recibidas: Start="${startDateStr}", End="${endDateStr}"`);
         
-        const startDate = new Date(startYear, startMonth - 1, startDay);
-        const endDate = new Date(endYear, endMonth - 1, endDay);
+        if (!startDateStr || !endDateStr) {
+            console.warn('Fechas del proyecto no disponibles');
+            return 0;
+        }
+        
+        // Función helper para parsear fechas DD/MM/YYYY o DD/MM/YYYY HH:MM
+        function parseProjectDate(dateStr) {
+            // Separar fecha y hora si existe
+            const parts = dateStr.split(' ');
+            const datePart = parts[0]; // DD/MM/YYYY
+            
+            const [day, month, year] = datePart.split('/').map(Number);
+            
+            if (isNaN(day) || isNaN(month) || isNaN(year)) {
+                throw new Error(`Formato de fecha inválido: ${dateStr}`);
+            }
+            
+            return new Date(year, month - 1, day);
+        }
+        
+        const startDate = parseProjectDate(startDateStr);
+        const endDate = parseProjectDate(endDateStr);
         const currentDate = new Date();
+        
+        // Validar fechas
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            throw new Error('Fechas del proyecto inválidas');
+        }
         
         // Calcular días totales del proyecto y días transcurridos
         const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
         const daysPassed = Math.ceil((currentDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
         
-        console.log(`Fechas del proyecto: ${startDateStr} a ${endDateStr}`);
+        console.log(`Fechas parseadas: ${startDate.toDateString()} a ${endDate.toDateString()}`);
         console.log(`Días totales: ${totalDays}, Días transcurridos: ${daysPassed}`);
         
         // Si no hemos empezado, progreso planificado es 0
@@ -461,7 +484,7 @@ function createCharts() {
     createTrendChart();
     createCategoryChart();
     createDefectsChart();
-    updateBurndownChart(testData.trend);
+    updateDefectCycleTimeChart(testData.defects);
     updateCoverageChart(testData.testDetails);
 }
 
@@ -752,86 +775,254 @@ function createDefectsChart() {
 }
 
 // Función para actualizar Burndown Chart
-function updateBurndownChart(trendData) {
-    if (!trendData || trendData.length === 0) {
-        console.log('No hay datos de tendencia para el burndown chart');
+function updateDefectCycleTimeChart(defectsData) {
+    if (!defectsData || !defectsData.details || defectsData.details.length === 0) {
+        console.log('No hay datos de defectos para el cycle time chart');
+        // Mostrar gráfico vacío
+        const layout = {
+            title: {
+                text: '',
+                font: { size: 14, color: '#1e293b' }
+            },
+            xaxis: {
+                title: 'Fecha de Resolución',
+                gridcolor: '#f1f5f9'
+            },
+            yaxis: {
+                title: 'Tiempo de Ciclo (días)',
+                gridcolor: '#f1f5f9'
+            },
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            font: { family: 'Inter, sans-serif', size: 12, color: '#64748b' },
+            margin: { t: 30, r: 30, b: 80, l: 60 },
+            annotations: [{
+                text: 'No hay datos de defectos disponibles',
+                x: 0.5,
+                y: 0.5,
+                xref: 'paper',
+                yref: 'paper',
+                showarrow: false,
+                font: { size: 14, color: '#64748b' }
+            }]
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        Plotly.newPlot('burndownChart', [], layout, config);
         return;
     }
 
-    // Preparar datos para el burndown
-    const dates = trendData.map(d => d.fecha || d.Fecha || d.date);
-    const totalPlanned = trendData[0] ? (
-        (trendData[0].pruebas_planificadas || 0) + 
-        (trendData[0].pruebas_exitosas || 0) + 
-        (trendData[0].pruebas_fallidas || 0) + 
-        (trendData[0].pruebas_pendientes || 0) + 
-        (trendData[0].pruebas_bloqueadas || 0)
-    ) : 0;
+    console.log('� Datos de defectos para cycle time:', defectsData);
 
-    // Calcular pruebas restantes por completar (burndown)
-    const remainingTests = trendData.map(d => {
-        const planned = d.pruebas_planificadas || d.planned || 0;
-        return planned;
-    });
-
-    // Calcular pruebas completadas acumuladas
-    const completedTests = trendData.map(d => {
-        const completed = (d.pruebas_exitosas || d.successful || 0) + 
-                         (d.pruebas_fallidas || d.failed || 0);
-        return completed;
-    });
-
-    // Línea ideal (burndown perfecto)
-    const idealLine = dates.map((_, index) => {
-        const progress = index / (dates.length - 1);
-        return Math.round(totalPlanned * (1 - progress));
-    });
-
-    // Configuración de trazos
-    const remainingTrace = {
-        x: dates,
-        y: remainingTests,
-        type: 'scatter',
-        mode: 'lines+markers',
-        name: 'Pruebas Restantes',
-        line: {
-            color: '#94a3b8',
-            width: 3
-        },
-        marker: {
-            size: 8,
-            color: '#94a3b8'
+    // Función helper para parsear fechas de manera más robusta
+    function parseExcelDate(dateStr) {
+        if (!dateStr || dateStr === '') return null;
+        
+        let date;
+        
+        // Si es un número (fecha serial de Excel)
+        if (typeof dateStr === 'number') {
+            const excelEpoch = new Date(1900, 0, 1);
+            const millisecondsPerDay = 24 * 60 * 60 * 1000;
+            let adjustedDays = dateStr;
+            if (dateStr > 59) {
+                adjustedDays = dateStr - 1;
+            }
+            date = new Date(excelEpoch.getTime() + (adjustedDays - 1) * millisecondsPerDay);
         }
+        // Si es un string
+        else if (typeof dateStr === 'string') {
+            // Formato DD/MM/AAAA HH:MM
+            if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}$/)) {
+                const [datePart, timePart] = dateStr.split(/\s+/);
+                const [day, month, year] = datePart.split('/').map(Number);
+                const [hour, minute] = timePart.split(':').map(Number);
+                date = new Date(year, month - 1, day, hour, minute);
+            }
+            // Formato DD/MM/AAAA
+            else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+                const [day, month, year] = dateStr.split('/').map(Number);
+                date = new Date(year, month - 1, day);
+            }
+            else {
+                // Intentar parsear directamente
+                date = new Date(dateStr);
+            }
+        }
+        else {
+            date = new Date(dateStr);
+        }
+        
+        // Validar que la fecha sea válida
+        if (isNaN(date.getTime())) {
+            console.warn('📊 No se pudo parsear la fecha:', dateStr);
+            return null;
+        }
+        
+        return date;
+    }
+
+    // Calcular cycle time para cada defecto resuelto
+    const cycleTimeData = defectsData.details
+        .filter(defect => {
+            // Buscar tanto dateResolved como dateResolution para compatibilidad
+            const resolvedDate = defect.dateResolved || defect.dateResolution;
+            const foundDate = defect.dateFound;
+            const hasResolved = resolvedDate && resolvedDate !== '';
+            const hasFound = foundDate && foundDate !== '';
+            
+            console.log(`📊 Defecto ${defect.id}: dateFound="${foundDate}", dateResolved="${defect.dateResolved}", dateResolution="${defect.dateResolution}", incluir=${hasResolved && hasFound}`);
+            return hasResolved && hasFound;
+        }) // Solo defectos resueltos
+        .map(defect => {
+            const foundDate = parseExcelDate(defect.dateFound);
+            // Usar dateResolved o dateResolution según esté disponible
+            const resolvedDateStr = defect.dateResolved || defect.dateResolution;
+            const resolvedDate = parseExcelDate(resolvedDateStr);
+            
+            // Validar que las fechas sean válidas antes de calcular
+            if (!foundDate || !resolvedDate) {
+                console.warn(`📊 Fechas inválidas para defecto ${defect.id}:`, {
+                    dateFound: defect.dateFound,
+                    dateResolvedUsed: resolvedDateStr,
+                    foundDateValid: foundDate !== null,
+                    resolvedDateValid: resolvedDate !== null
+                });
+                return null; // Retornar null para filtrar después
+            }
+            
+            const cycleTimeDays = Math.ceil((resolvedDate - foundDate) / (1000 * 60 * 60 * 24));
+            
+            console.log(`📊 Cálculo cycle time para ${defect.id}:`, {
+                dateFound: defect.dateFound,
+                dateResolvedUsed: resolvedDateStr,
+                foundDate: foundDate.toISOString(),
+                resolvedDate: resolvedDate.toISOString(),
+                cycleTimeDays: cycleTimeDays
+            });
+            
+            return {
+                id: defect.id,
+                title: defect.title,
+                severity: defect.severity,
+                resolvedDate: resolvedDate,
+                cycleTime: Math.max(0, cycleTimeDays), // Evitar valores negativos
+                status: defect.status
+            };
+        })
+        .filter(item => item !== null) // Filtrar defectos con fechas inválidas
+        .sort((a, b) => a.resolvedDate - b.resolvedDate); // Ordenar por fecha de resolución
+
+    console.log('� Datos de cycle time calculados:', cycleTimeData);
+
+    if (cycleTimeData.length === 0) {
+        // Mostrar gráfico indicando que no hay defectos resueltos
+        const layout = {
+            title: {
+                text: '',
+                font: { size: 14, color: '#1e293b' }
+            },
+            xaxis: {
+                title: 'Fecha de Resolución',
+                gridcolor: '#f1f5f9'
+            },
+            yaxis: {
+                title: 'Tiempo de Ciclo (días)',
+                gridcolor: '#f1f5f9'
+            },
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            font: { family: 'Inter, sans-serif', size: 12, color: '#64748b' },
+            margin: { t: 30, r: 30, b: 80, l: 60 },
+            annotations: [{
+                text: 'No hay defectos resueltos para mostrar',
+                x: 0.5,
+                y: 0.5,
+                xref: 'paper',
+                yref: 'paper',
+                showarrow: false,
+                font: { size: 14, color: '#64748b' }
+            }]
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        Plotly.newPlot('burndownChart', [], layout, config);
+        return;
+    }
+
+    // Preparar datos para barras verticales
+    const defectIds = cycleTimeData.map(item => item.id);
+    const cycleTimes = cycleTimeData.map(item => item.cycleTime);
+    
+    // Colores basados en si cumple o no el objetivo de 3 días
+    const colors = cycleTimeData.map(item => {
+        if (item.cycleTime <= 3) {
+            // Verde - Cumple el objetivo
+            return '#10b981';
+        } else if (item.cycleTime <= 5) {
+            // Amarillo - Aceptable pero por encima del objetivo
+            return '#f59e0b';
+        } else {
+            // Rojo - Muy por encima del objetivo
+            return '#ef4444';
+        }
+    });
+
+    // Textos hover con información detallada
+    const hoverTexts = cycleTimeData.map(item => 
+        `ID: ${item.id}<br>` +
+        `Título: ${item.title.length > 40 ? item.title.substring(0, 40) + '...' : item.title}<br>` +
+        `Severidad: ${item.severity}<br>` +
+        `Cycle Time: ${item.cycleTime} días<br>` +
+        `Estado: ${item.cycleTime <= 3 ? '✅ Dentro del objetivo' : '⚠️ Fuera del objetivo'}`
+    );
+
+    // Crear el trace para las barras
+    const barTrace = {
+        x: defectIds,
+        y: cycleTimes,
+        type: 'bar',
+        name: 'Cycle Time',
+        marker: {
+            color: colors,
+            line: {
+                color: '#374151',
+                width: 1
+            }
+        },
+        text: hoverTexts,
+        hovertemplate: '%{text}<extra></extra>',
+        textposition: 'outside',
+        texttemplate: '%{y}d'
     };
 
-    const completedTrace = {
-        x: dates,
-        y: completedTests,
-        type: 'scatter',
-        mode: 'lines+markers',
-        name: 'Pruebas Completadas',
-        line: {
-            color: '#10b981',
-            width: 3
-        },
-        marker: {
-            size: 8,
-            color: '#10b981'
-        }
-    };
-
-    const idealTrace = {
-        x: dates,
-        y: idealLine,
+    // Línea horizontal para el objetivo de 3 días
+    const objectiveLine = {
+        x: defectIds,
+        y: Array(defectIds.length).fill(3),
         type: 'scatter',
         mode: 'lines',
-        name: 'Línea Ideal',
+        name: 'Objetivo (3 días)',
         line: {
-            color: '#2563eb',
+            color: '#dc2626',
             width: 2,
             dash: 'dash'
-        }
+        },
+        hovertemplate: 'Objetivo: 3 días<extra></extra>'
     };
+
+    // Calcular estadísticas
+    const averageCycleTime = cycleTimes.reduce((sum, time) => sum + time, 0) / cycleTimes.length;
+    const defectsWithinObjective = cycleTimes.filter(time => time <= 3).length;
+    const complianceRate = (defectsWithinObjective / cycleTimes.length * 100).toFixed(1);
 
     const layout = {
         title: {
@@ -839,23 +1030,38 @@ function updateBurndownChart(trendData) {
             font: { size: 14, color: '#1e293b' }
         },
         xaxis: {
-            title: 'Fecha',
+            title: 'Defectos',
             gridcolor: '#f1f5f9',
-            tickangle: -45
+            tickangle: -45,
+            type: 'category'
         },
         yaxis: {
-            title: 'Cantidad de Pruebas',
-            gridcolor: '#f1f5f9'
+            title: `Cycle Time (días) - Promedio: ${averageCycleTime.toFixed(1)} | Cumplimiento: ${complianceRate}%`,
+            gridcolor: '#f1f5f9',
+            zeroline: false
         },
         plot_bgcolor: 'rgba(0,0,0,0)',
         paper_bgcolor: 'rgba(0,0,0,0)',
         font: { family: 'Inter, sans-serif', size: 12, color: '#64748b' },
-        margin: { t: 30, r: 30, b: 80, l: 60 },
+        margin: { t: 30, r: 30, b: 100, l: 80 },
+        hovermode: 'closest',
+        showlegend: true,
         legend: {
             x: 0,
             y: 1.1,
             orientation: 'h'
-        }
+        },
+        shapes: [{
+            type: 'rect',
+            xref: 'paper',
+            yref: 'y',
+            x0: 0,
+            y0: 0,
+            x1: 1,
+            y1: 3,
+            fillcolor: 'rgba(16, 185, 129, 0.1)',
+            line: { width: 0 }
+        }]
     };
 
     const config = {
@@ -863,7 +1069,8 @@ function updateBurndownChart(trendData) {
         displayModeBar: false
     };
 
-    Plotly.newPlot('burndownChart', [remainingTrace, completedTrace, idealTrace], layout, config);
+    console.log('📊 Renderizando gráfico de barras Defect Cycle Time');
+    Plotly.newPlot('burndownChart', [barTrace, objectiveLine], layout, config);
 }
 
 // Función para actualizar Cobertura por Módulo
@@ -1330,17 +1537,40 @@ function populateDefectsTable() {
 function calculateDaysOpen(dateFound) {
     const today = new Date();
     
-    // Convertir fecha DD/MM/AAAA a objeto Date
+    // Convertir fecha a objeto Date
     let foundDate;
-    if (typeof dateFound === 'string' && dateFound.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
-        // Formato DD/MM/AAAA
-        const parts = dateFound.split('/');
-        const day = parseInt(parts[0]);
-        const month = parseInt(parts[1]);
-        const year = parseInt(parts[2]);
-        foundDate = new Date(year, month - 1, day); // month - 1 porque Date usa 0-11 para meses
+    
+    if (typeof dateFound === 'string') {
+        // Formato DD/MM/AAAA HH:MM
+        if (dateFound.match(/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}$/)) {
+            const [datePart, timePart] = dateFound.split(/\s+/);
+            const [day, month, year] = datePart.split('/').map(Number);
+            const [hour, minute] = timePart.split(':').map(Number);
+            foundDate = new Date(year, month - 1, day, hour, minute);
+        }
+        // Formato DD/MM/AAAA (solo fecha)
+        else if (dateFound.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+            const [day, month, year] = dateFound.split('/').map(Number);
+            foundDate = new Date(year, month - 1, day);
+        }
+        // Formato YYYY-MM-DD HH:MM
+        else if (dateFound.match(/^\d{4}-\d{1,2}-\d{1,2}\s+\d{1,2}:\d{2}$/)) {
+            const [datePart, timePart] = dateFound.split(/\s+/);
+            const [year, month, day] = datePart.split('-').map(Number);
+            const [hour, minute] = timePart.split(':').map(Number);
+            foundDate = new Date(year, month - 1, day, hour, minute);
+        }
+        // Formato YYYY-MM-DD (solo fecha)
+        else if (dateFound.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
+            const [year, month, day] = dateFound.split('-').map(Number);
+            foundDate = new Date(year, month - 1, day);
+        }
+        else {
+            // Intentar parsear directamente como último recurso
+            foundDate = new Date(dateFound);
+        }
     } else {
-        // Intentar parsear directamente
+        // Si ya es un objeto Date o número
         foundDate = new Date(dateFound);
     }
     
@@ -1349,8 +1579,14 @@ function calculateDaysOpen(dateFound) {
         return 0;
     }
     
+    console.log(`Calculando días abiertos: Fecha encontrado=${dateFound}, Fecha parseada=${foundDate.toISOString()}, Hoy=${today.toISOString()}`);
+    
     const diffTime = Math.abs(today - foundDate);
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const daysOpen = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    console.log(`Días abiertos calculados: ${daysOpen}`);
+    
+    return daysOpen;
 }
 
 // Obtener clase CSS de severidad
@@ -1389,6 +1625,12 @@ function formatDate(dateString) {
     
     let date;
     
+    // Si está en formato DD/MM/AAAA HH:MM, extraer solo la fecha
+    if (typeof dateString === 'string' && dateString.match(/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}$/)) {
+        const datePart = dateString.split(' ')[0]; // Tomar solo la parte de fecha
+        return datePart; // Ya está en formato DD/MM/AAAA
+    }
+    
     // Si ya está en formato DD/MM/AAAA, retornarlo tal como está
     if (typeof dateString === 'string' && dateString.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
         return dateString;
@@ -1397,6 +1639,13 @@ function formatDate(dateString) {
     // Si está en formato YYYY-MM-DD, convertirlo
     if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
         const [year, month, day] = dateString.split('-');
+        return `${day}/${month}/${year}`;
+    }
+    
+    // Si está en formato YYYY-MM-DD HH:MM, convertir solo la fecha
+    if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}$/)) {
+        const datePart = dateString.split(' ')[0]; // YYYY-MM-DD
+        const [year, month, day] = datePart.split('-');
         return `${day}/${month}/${year}`;
     }
     
@@ -2179,34 +2428,46 @@ function formatDateForDashboard(dateValue) {
     }
     // Si es un string
     else if (typeof dateValue === 'string') {
-        // Formato DD/MM/YYYY
-        if (dateValue.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
-            const parts = dateValue.split('/');
-            const day = parseInt(parts[0]);
-            const month = parseInt(parts[1]);
-            const year = parseInt(parts[2]);
+        // Formato DD/MM/AAAA HH:MM (con hora y minutos)
+        if (dateValue.match(/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}$/)) {
+            const [datePart, timePart] = dateValue.split(/\s+/);
+            const [day, month, year] = datePart.split('/').map(Number);
+            const [hour, minute] = timePart.split(':').map(Number);
             
-            // Determinar el formato basado en los valores
-            if (day > 12 && month <= 12) {
-                // Definitivamente DD/MM/YYYY
-                date = new Date(year, month - 1, day);
-            } else if (month > 12 && day <= 12) {
-                // Definitivamente MM/DD/YYYY
-                date = new Date(year, day - 1, month);
-            } else {
-                // Ambiguo, usar DD/MM/YYYY (formato europeo por defecto)
-                date = new Date(year, month - 1, day);
-            }
+            date = new Date(year, month - 1, day, hour, minute);
+            console.log('DD/MM/AAAA HH:MM convertido:', dateValue, '->', date);
         }
-        // Formato DD-MM-YYYY
+        // Formato DD/MM/AAAA (solo fecha)
+        else if (dateValue.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+            const [day, month, year] = dateValue.split('/').map(Number);
+            date = new Date(year, month - 1, day);
+            console.log('DD/MM/AAAA convertido:', dateValue, '->', date);
+        }
+        // Formato DD-MM-AAAA HH:MM
+        else if (dateValue.match(/^\d{1,2}-\d{1,2}-\d{4}\s+\d{1,2}:\d{2}$/)) {
+            const [datePart, timePart] = dateValue.split(/\s+/);
+            const [day, month, year] = datePart.split('-').map(Number);
+            const [hour, minute] = timePart.split(':').map(Number);
+            
+            date = new Date(year, month - 1, day, hour, minute);
+        }
+        // Formato DD-MM-AAAA (solo fecha)
         else if (dateValue.match(/^\d{1,2}-\d{1,2}-\d{4}$/)) {
-            const parts = dateValue.split('-');
-            date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            const [day, month, year] = dateValue.split('-').map(Number);
+            date = new Date(year, month - 1, day);
         }
-        // Formato YYYY-MM-DD
+        // Formato YYYY-MM-DD HH:MM
+        else if (dateValue.match(/^\d{4}-\d{1,2}-\d{1,2}\s+\d{1,2}:\d{2}$/)) {
+            const [datePart, timePart] = dateValue.split(/\s+/);
+            const [year, month, day] = datePart.split('-').map(Number);
+            const [hour, minute] = timePart.split(':').map(Number);
+            
+            date = new Date(year, month - 1, day, hour, minute);
+        }
+        // Formato YYYY-MM-DD (solo fecha)
         else if (dateValue.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
-            const parts = dateValue.split('-');
-            date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            const [year, month, day] = dateValue.split('-').map(Number);
+            date = new Date(year, month - 1, day);
         }
         else {
             // Intentar parsear directamente
@@ -2230,11 +2491,28 @@ function formatDateForDashboard(dateValue) {
         return String(dateValue); // Devolver el valor original como string
     }
     
-    // Formatear como DD/MM/YYYY
+    // Formatear fecha
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
-    const formatted = `${day}/${month}/${year}`;
+    
+    // Si la fecha original incluía hora, preservarla
+    let formatted = `${day}/${month}/${year}`;
+    
+    // Verificar si hay componentes de hora en la fecha original
+    if (typeof dateValue === 'string' && dateValue.includes(':')) {
+        const hour = date.getHours().toString().padStart(2, '0');
+        const minute = date.getMinutes().toString().padStart(2, '0');
+        formatted = `${day}/${month}/${year} ${hour}:${minute}`;
+    } else if (typeof dateValue === 'number' || (date.getHours() !== 0 || date.getMinutes() !== 0)) {
+        // Si es un número de Excel (que puede incluir tiempo) o si tiene hora/minuto no cero
+        const hour = date.getHours().toString().padStart(2, '0');
+        const minute = date.getMinutes().toString().padStart(2, '0');
+        // Solo agregar hora si no es medianoche (00:00)
+        if (hour !== '00' || minute !== '00') {
+            formatted = `${day}/${month}/${year} ${hour}:${minute}`;
+        }
+    }
     
     console.log('Fecha final formateada:', formatted);
     return formatted;
@@ -2410,7 +2688,7 @@ function updateDashboardWithCSVData(data, type) {
                 reporter: row.reportado_por || '',
                 dateFound: formatDateForDashboard(row.fecha_encontrado || ''),
                 dateAssigned: formatDateForDashboard(row.fecha_asignacion || ''),
-                dateResolution: formatDateForDashboard(row.fecha_resolucion || ''),
+                dateResolved: formatDateForDashboard(row.fecha_resolucion || ''),
                 stepsToReproduce: row.pasos_reproducir || '',
                 environment: row.ambiente_encontrado || ''
             }))
@@ -2486,7 +2764,7 @@ function updateDashboardWithExcelData(data, type) {
                     reporter: row.reportado_por || '',
                     dateFound: formatDateForDashboard(row.fecha_encontrado || ''),
                     dateAssigned: formatDateForDashboard(row.fecha_asignacion || ''),
-                    dateResolution: formatDateForDashboard(row.fecha_resolucion || ''),
+                    dateResolved: formatDateForDashboard(row.fecha_resolucion || ''),
                     stepsToReproduce: row.pasos_reproducir || '',
                     environment: row.ambiente_encontrado || ''
                 }))

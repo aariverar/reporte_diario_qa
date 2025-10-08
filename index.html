@@ -86,20 +86,24 @@
                                 <div class="progress-item">
                                     <div class="progress-label">
                                         <span>Progreso Planificado:</span>
-                                        <span class="progress-percentage" id="plannedProgressText">65.0%</span>
                                     </div>
-                                    <div class="progress-bar planned-progress">
-                                        <div class="progress-fill planned-fill" id="plannedProgress" style="width: 65%"></div>
+                                    <div class="progress-row">
+                                        <span class="progress-percentage" id="plannedProgressText">65.0%</span>
+                                        <div class="progress-bar planned-progress">
+                                            <div class="progress-fill planned-fill" id="plannedProgress" style="width: 65%"></div>
+                                        </div>
                                     </div>
                                 </div>
                                 <!-- Progreso Real -->
                                 <div class="progress-item">
                                     <div class="progress-label">
                                         <span>Progreso Real:</span>
-                                        <span class="progress-percentage" id="realProgressText">75.0%</span>
                                     </div>
-                                    <div class="progress-bar real-progress">
-                                        <div class="progress-fill real-fill" id="realProgress" style="width: 75%"></div>
+                                    <div class="progress-row">
+                                        <span class="progress-percentage" id="realProgressText">75.0%</span>
+                                        <div class="progress-bar real-progress">
+                                            <div class="progress-fill real-fill" id="realProgress" style="width: 75%"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -235,17 +239,19 @@
                     <div id="defectsChart" class="chart"></div>
                 </div>
 
-                <!-- Burndown Chart -->
+                <!-- Defect Cycle Time Chart -->
                 <div class="chart-container">
-                    <button class="chart-expand-btn" onclick="expandChart('burndown', 'Burndown Chart de Pruebas')" title="Ver ampliado">
+                    <button class="chart-expand-btn" onclick="expandChart('burndown', 'Defect Cycle Time')" title="Ver ampliado">
                         <i class="fas fa-expand"></i>
                     </button>
                     <div class="chart-header">
-                        <h3>Burndown Chart de Pruebas</h3>
+                        <h3>Defect Cycle Time</h3>
                         <div class="burndown-legend">
-                            <span class="legend-item"><span class="dot planned"></span>Planificadas</span>
-                            <span class="legend-item"><span class="dot completed"></span>Completadas</span>
-                            <span class="legend-item"><span class="dot ideal"></span>Línea Ideal</span>
+                            <span class="legend-item"><span class="dot critical" style="background: #dc2626;"></span>Crítica</span>
+                            <span class="legend-item"><span class="dot high" style="background: #ea580c;"></span>Alta</span>
+                            <span class="legend-item"><span class="dot medium" style="background: #d97706;"></span>Media</span>
+                            <span class="legend-item"><span class="dot low" style="background: #16a34a;"></span>Baja</span>
+                            <span class="legend-item"><span class="dot trend" style="background: #6366f1;"></span>Tendencia</span>
                         </div>
                     </div>
                     <div id="burndownChart" class="chart"></div>
