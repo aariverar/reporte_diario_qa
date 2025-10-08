@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Santander - Dashboard QA | Ejecución Diaria de Pruebas</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -80,12 +80,28 @@
                             <span class="project-status" id="projectStatusDetail">Pruebas QA</span>
                         </div>
                         <div class="detail-item">
-                            <label>Progreso General:</label>
-                            <div class="progress-container">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" id="projectProgress" style="width: 75%"></div>
+                            <label>Progreso del Proyecto:</label>
+                            <div class="dual-progress-container">
+                                <!-- Progreso Planificado -->
+                                <div class="progress-item">
+                                    <div class="progress-label">
+                                        <span>Progreso Planificado:</span>
+                                        <span class="progress-percentage" id="plannedProgressText">65.0%</span>
+                                    </div>
+                                    <div class="progress-bar planned-progress">
+                                        <div class="progress-fill planned-fill" id="plannedProgress" style="width: 65%"></div>
+                                    </div>
                                 </div>
-                                <span class="progress-text">75%</span>
+                                <!-- Progreso Real -->
+                                <div class="progress-item">
+                                    <div class="progress-label">
+                                        <span>Progreso Real:</span>
+                                        <span class="progress-percentage" id="realProgressText">75.0%</span>
+                                    </div>
+                                    <div class="progress-bar real-progress">
+                                        <div class="progress-fill real-fill" id="realProgress" style="width: 75%"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

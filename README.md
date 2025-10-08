@@ -7,7 +7,7 @@ Un dashboard interactivo y profesional diseñado para el seguimiento diario de l
 ## 🎯 Características Principales
 
 ### 📈 **Visualización de Datos**
-- **Gráficos interactivos** con Plotly.js
+- **Gráficos interactivos** con Plotly.js v2.35.2
 - **Métricas KPI** en tiempo real
 - **Tablas dinámicas** con paginación y filtros
 - **Gráficos de tendencias** de ejecución de pruebas
@@ -39,7 +39,7 @@ Un dashboard interactivo y profesional diseñado para el seguimiento diario de l
 - **Google Fonts (Inter)** - Tipografía
 
 ### **Librerías**
-- **Plotly.js** - Gráficos interactivos
+- **Plotly.js v2.35.2** - Gráficos interactivos
 - **SheetJS (xlsx.js)** - Procesamiento de archivos Excel
 - **CSS Grid & Flexbox** - Layout responsive
 

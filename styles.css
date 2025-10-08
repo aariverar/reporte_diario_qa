@@ -320,6 +320,73 @@ body::before {
     min-width: 40px;
 }
 
+/* Dual Progress Bars - Diseño Simple */
+.dual-progress-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+}
+
+.progress-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.progress-label span:first-child {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.progress-percentage {
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+/* Indicadores de progreso con colores específicos */
+.planned-progress .progress-percentage {
+    color: #e0a800;
+}
+
+.real-progress .progress-percentage {
+    color: var(--primary-color);
+}
+
+.planned-progress .progress-fill {
+    background: linear-gradient(90deg, #ffc107, #ffdb4d);
+}
+
+.real-progress .progress-fill {
+    background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+}
+
+.planned-fill {
+    background: linear-gradient(90deg, #ffc107, #ffdb4d) !important;
+}
+
+.real-fill {
+    background: linear-gradient(90deg, var(--primary-color), var(--success-color)) !important;
+}
+
+/* Efectos hover para mejor UX */
+.progress-item:hover .progress-bar {
+    transform: scaleY(1.1);
+    transition: transform 0.2s ease;
+}
+
+.progress-item:hover .progress-percentage {
+    font-weight: 700;
+    transition: font-weight 0.2s ease;
+}
+
 /* Main Content */
 .main-content {
     max-width: 1400px;

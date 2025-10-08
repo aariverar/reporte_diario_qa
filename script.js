@@ -50,14 +50,14 @@ const testData = {
     defects: {
         summary: { critical: 2, high: 5, medium: 8, low: 3 },
         details: [
-            { id: 'DEF001', title: 'Sistema no responde después de login', severity: 'critical', status: 'open', escenario: 'API Tests', assignee: 'Ana García', dateFound: '2024-09-18' },
-            { id: 'DEF002', title: 'Error de validación en formulario de registro', severity: 'critical', status: 'open', escenario: 'UI Tests', assignee: 'Carlos López', dateFound: '2024-09-20' },
-            { id: 'DEF003', title: 'Timeout en procesamiento de pagos', severity: 'high', status: 'in-progress', escenario: 'Integration', assignee: 'María Rodríguez', dateFound: '2024-09-19' },
-            { id: 'DEF004', title: 'Interfaz no responsive en móviles', severity: 'high', status: 'open', escenario: 'UI Tests', assignee: 'Pedro Ruiz', dateFound: '2024-09-21' },
-            { id: 'DEF005', title: 'Performance lenta en búsquedas', severity: 'high', status: 'resolved', escenario: 'Performance', assignee: 'Laura Sánchez', dateFound: '2024-09-17' },
-            { id: 'DEF006', title: 'Mensajes de error poco claros', severity: 'medium', status: 'open', escenario: 'UI Tests', assignee: 'José Martín', dateFound: '2024-09-22' },
-            { id: 'DEF007', title: 'Falta validación de campos', severity: 'medium', status: 'in-progress', escenario: 'API Tests', assignee: 'Ana García', dateFound: '2024-09-16' },
-            { id: 'DEF008', title: 'Inconsistencia en colores del tema', severity: 'low', status: 'open', escenario: 'UI Tests', assignee: 'Carlos López', dateFound: '2024-09-23' }
+            { id: 'DEF001', title: 'Sistema no responde después de login', severity: 'critical', status: 'open', escenario: 'API Tests', assignee: 'Ana García', dateFound: '18/09/2024' },
+            { id: 'DEF002', title: 'Error de validación en formulario de registro', severity: 'critical', status: 'open', escenario: 'UI Tests', assignee: 'Carlos López', dateFound: '20/09/2024' },
+            { id: 'DEF003', title: 'Timeout en procesamiento de pagos', severity: 'high', status: 'in-progress', escenario: 'Integration', assignee: 'María Rodríguez', dateFound: '19/09/2024' },
+            { id: 'DEF004', title: 'Interfaz no responsive en móviles', severity: 'high', status: 'open', escenario: 'UI Tests', assignee: 'Pedro Ruiz', dateFound: '21/09/2024' },
+            { id: 'DEF005', title: 'Performance lenta en búsquedas', severity: 'high', status: 'resolved', escenario: 'Performance', assignee: 'Laura Sánchez', dateFound: '17/09/2024' },
+            { id: 'DEF006', title: 'Mensajes de error poco claros', severity: 'medium', status: 'open', escenario: 'UI Tests', assignee: 'José Martín', dateFound: '22/09/2024' },
+            { id: 'DEF007', title: 'Falta validación de campos', severity: 'medium', status: 'in-progress', escenario: 'API Tests', assignee: 'Ana García', dateFound: '16/09/2024' },
+            { id: 'DEF008', title: 'Inconsistencia en colores del tema', severity: 'low', status: 'open', escenario: 'UI Tests', assignee: 'Carlos López', dateFound: '23/09/2024' }
         ]
     },
     testDetails: [
@@ -83,23 +83,95 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEditorIntegration();
 });
 
-// Calcular progreso del proyecto basado en pruebas exitosas sobre total planificado
+// Calcular progreso del proyecto basado en pruebas ejecutadas (exitosas + fallidas) sobre total planificado
 function calculateProjectProgress() {
     const successful = testData.summary.successful || 0;
+    const failed = testData.summary.failed || 0;
     const totalPlanned = testData.summary.planned + testData.summary.successful + 
                         testData.summary.failed + testData.summary.pending + 
                         (testData.summary.blocked || 0);
     
     if (totalPlanned === 0) {
-        return 0;
+        return 0.0;
     }
     
-    // El progreso es 100% solo cuando TODAS las pruebas son exitosas
-    const progress = Math.round((successful / totalPlanned) * 100);
+    // El progreso real incluye todas las pruebas ejecutadas (exitosas + fallidas)
+    const executedTests = successful + failed;
+    const progress = parseFloat(((executedTests / totalPlanned) * 100).toFixed(1));
     
-    console.log(`Progreso calculado: ${successful} exitosas de ${totalPlanned} totales = ${progress}%`);
+    console.log(`📊 PROGRESO REAL DETALLADO:`);
+    console.log(`   • Pruebas exitosas: ${successful}`);
+    console.log(`   • Pruebas fallidas: ${failed}`);
+    console.log(`   • Total ejecutadas: ${executedTests} (exitosas + fallidas)`);
+    console.log(`   • Total planificadas: ${totalPlanned}`);
+    console.log(`   • Progreso real: ${progress}% = (${executedTests}/${totalPlanned}) * 100`);
     
     return progress;
+}
+
+// Función para calcular el progreso planificado basado en fechas y tendencia
+function calculatePlannedProgress() {
+    try {
+        // Obtener fechas del proyecto
+        const startDateStr = testData.projectInfo.startDate;
+        const endDateStr = testData.projectInfo.endDate;
+        
+        // Convertir fechas DD/MM/YYYY a objetos Date
+        const [startDay, startMonth, startYear] = startDateStr.split('/').map(Number);
+        const [endDay, endMonth, endYear] = endDateStr.split('/').map(Number);
+        
+        const startDate = new Date(startYear, startMonth - 1, startDay);
+        const endDate = new Date(endYear, endMonth - 1, endDay);
+        const currentDate = new Date();
+        
+        // Calcular días totales del proyecto y días transcurridos
+        const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        const daysPassed = Math.ceil((currentDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        
+        console.log(`Fechas del proyecto: ${startDateStr} a ${endDateStr}`);
+        console.log(`Días totales: ${totalDays}, Días transcurridos: ${daysPassed}`);
+        
+        // Si no hemos empezado, progreso planificado es 0
+        if (daysPassed <= 0) {
+            console.log('El proyecto aún no ha comenzado');
+            return 0;
+        }
+        
+        // Si ya terminó el proyecto, progreso planificado debería ser 100
+        if (daysPassed >= totalDays) {
+            console.log('El proyecto ya debería haber terminado');
+            return 100.0;
+        }
+        
+        // Calcular progreso planificado basado en distribución lineal
+        let plannedProgress = parseFloat(((daysPassed / totalDays) * 100).toFixed(1));
+        
+        // Asegurar que el progreso planificado esté entre 0 y 100
+        plannedProgress = Math.max(0, Math.min(100, plannedProgress));
+        
+        console.log(`Progreso planificado calculado: ${daysPassed} días de ${totalDays} = ${plannedProgress}%`);
+        
+        return plannedProgress;
+        
+    } catch (error) {
+        console.error('Error calculando progreso planificado:', error);
+        
+        // En caso de error, usar fechas por defecto
+        const startDate = new Date(2024, 8, 1); // 01/09/2024
+        const endDate = new Date(2024, 8, 30);   // 30/09/2024
+        const currentDate = new Date();
+        
+        const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        const daysPassed = Math.ceil((currentDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        
+        if (daysPassed <= 0) return 0.0;
+        if (daysPassed >= totalDays) return 100.0;
+        
+        const fallbackProgress = Math.max(0, Math.min(100, parseFloat(((daysPassed / totalDays) * 100).toFixed(1))));
+        console.log(`Usando progreso fallback: ${fallbackProgress}%`);
+        
+        return fallbackProgress;
+    }
 }
 
 // Inicializar dashboard
@@ -123,14 +195,39 @@ function initializeDashboard() {
     document.getElementById('reportStartDate').textContent = testData.projectInfo.startDate;
     document.getElementById('reportEndDate').textContent = testData.projectInfo.endDate;
     
-    // Actualizar progreso del proyecto (calculado automáticamente)
-    const progressElement = document.getElementById('projectProgress');
-    const calculatedProgress = calculateProjectProgress();
-    progressElement.style.width = calculatedProgress + '%';
-    progressElement.parentElement.nextElementSibling.textContent = calculatedProgress + '%';
+    // Actualizar progreso del proyecto con barras duales
+    const realProgress = calculateProjectProgress();
+    const plannedProgress = calculatePlannedProgress();
+    
+    console.log(`🔄 Actualizando barras: Planificado=${plannedProgress}%, Actual=${realProgress}%`);
+    
+    // Actualizar progreso real
+    const realProgressElement = document.getElementById('realProgress');
+    const realProgressText = document.getElementById('realProgressText');
+    
+    if (realProgressElement && realProgressText) {
+        realProgressElement.style.width = realProgress + '%';
+        realProgressText.textContent = realProgress.toFixed(1) + '%';
+        console.log(`✅ Progreso real actualizado: ${realProgress}%`);
+    } else {
+        console.warn('⚠️ Elementos de progreso real no encontrados');
+    }
+    
+    // Actualizar progreso planificado
+    const plannedProgressElement = document.getElementById('plannedProgress');
+    const plannedProgressText = document.getElementById('plannedProgressText');
+    
+    if (plannedProgressElement && plannedProgressText) {
+        plannedProgressElement.style.width = plannedProgress + '%';
+        plannedProgressText.textContent = plannedProgress.toFixed(1) + '%';
+        console.log(`✅ Progreso planificado actualizado: ${plannedProgress}%`);
+    } else {
+        console.warn('⚠️ Elementos de progreso planificado no encontrados');
+    }
     
     // Actualizar el progreso en testData para consistencia
-    testData.projectInfo.progress = calculatedProgress;
+    testData.projectInfo.progress = realProgress;
+    testData.projectInfo.plannedProgress = plannedProgress;
     
     // Actualizar estado del reporte
     const reportStatus = document.getElementById('reportStatus');
@@ -772,15 +869,17 @@ function updateBurndownChart(trendData) {
 // Función para actualizar Cobertura por Módulo
 function updateCoverageChart(detailsData) {
     if (!detailsData || detailsData.length === 0) {
-        console.log('No hay datos de detalles para cobertura por módulo');
+        console.log('No hay datos de detalles para cobertura por escenario');
         return;
     }
 
-    // Agrupar por módulo (usando campo escenario)
+    console.log('🔍 Actualizando gráfico de cobertura con', detailsData.length, 'pruebas');
+
+    // Agrupar por escenario/módulo
     const moduleStats = {};
     
     detailsData.forEach(test => {
-        const module = test.escenario || test.categoria || test.modulo || 'Sin Módulo';
+        const module = test.escenario || test.categoria || test.modulo || 'Sin Escenario';
         
         if (!moduleStats[module]) {
             moduleStats[module] = {
@@ -792,13 +891,21 @@ function updateCoverageChart(detailsData) {
         
         moduleStats[module].total++;
         
-        const estado = (test.estado || '').toLowerCase();
-        if (estado === 'exitosa' || estado === 'success' || estado === 'fallida' || estado === 'failed') {
+        // Usar el campo 'status' que es el estándar en todo el dashboard
+        const status = test.status || '';
+        if (status === 'success' || status === 'failure') {
             moduleStats[module].completed++;
         } else {
             moduleStats[module].planned++;
         }
+        
+        // Log para depuración
+        if (moduleStats[module].total <= 3) {
+            console.log(`📊 ${module}: Prueba "${test.name}" con status "${status}"`);
+        }
     });
+
+    console.log('📈 Estadísticas por escenario:', moduleStats);
 
     // Calcular porcentajes de cobertura
     const modules = Object.keys(moduleStats);
@@ -807,13 +914,26 @@ function updateCoverageChart(detailsData) {
         return Math.round((stats.completed / stats.total) * 100);
     });
 
+    console.log('📊 Porcentajes de cobertura:', modules.map((m, i) => `${m}: ${coveragePercentages[i]}%`));
+
     // Actualizar estadísticas generales
     const totalModules = modules.length;
     const completeModules = coveragePercentages.filter(pct => pct === 100).length;
-    const avgCoverage = Math.round(coveragePercentages.reduce((a, b) => a + b, 0) / coveragePercentages.length);
+    const avgCoverage = coveragePercentages.length > 0 ? 
+        Math.round(coveragePercentages.reduce((a, b) => a + b, 0) / coveragePercentages.length) : 0;
 
-    document.getElementById('avgCoverage').textContent = `${avgCoverage}%`;
-    document.getElementById('completeModules').textContent = completeModules;
+    // Actualizar elementos HTML
+    const avgCoverageElement = document.getElementById('avgCoverage');
+    const completeModulesElement = document.getElementById('completeModules');
+    
+    if (avgCoverageElement) {
+        avgCoverageElement.textContent = `${avgCoverage}%`;
+    }
+    if (completeModulesElement) {
+        completeModulesElement.textContent = completeModules;
+    }
+
+    console.log(`📊 Estadísticas generales: Promedio=${avgCoverage}%, Completos=${completeModules}/${totalModules}`);
 
     // Crear gráfico de barras horizontal
     const trace = {
@@ -1209,7 +1329,26 @@ function populateDefectsTable() {
 // Calcular días abierto
 function calculateDaysOpen(dateFound) {
     const today = new Date();
-    const foundDate = new Date(dateFound);
+    
+    // Convertir fecha DD/MM/AAAA a objeto Date
+    let foundDate;
+    if (typeof dateFound === 'string' && dateFound.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+        // Formato DD/MM/AAAA
+        const parts = dateFound.split('/');
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]);
+        const year = parseInt(parts[2]);
+        foundDate = new Date(year, month - 1, day); // month - 1 porque Date usa 0-11 para meses
+    } else {
+        // Intentar parsear directamente
+        foundDate = new Date(dateFound);
+    }
+    
+    if (isNaN(foundDate.getTime())) {
+        console.warn('Fecha inválida en calculateDaysOpen:', dateFound);
+        return 0;
+    }
+    
     const diffTime = Math.abs(today - foundDate);
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
@@ -1246,8 +1385,38 @@ function getDaysOpenClass(days, status) {
 
 // Formatear fecha
 function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES');
+    if (!dateString) return '';
+    
+    let date;
+    
+    // Si ya está en formato DD/MM/AAAA, retornarlo tal como está
+    if (typeof dateString === 'string' && dateString.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+        return dateString;
+    }
+    
+    // Si está en formato YYYY-MM-DD, convertirlo
+    if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [year, month, day] = dateString.split('-');
+        return `${day}/${month}/${year}`;
+    }
+    
+    // Intentar convertir si es un objeto Date o string parseeable
+    try {
+        date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            return dateString; // Si no se puede parsear, retornar el original
+        }
+        
+        // Formatear como DD/MM/AAAA
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        
+        return `${day}/${month}/${year}`;
+    } catch (error) {
+        console.warn('Error formateando fecha:', dateString, error);
+        return dateString;
+    }
 }
 
 // Filtrar defectos
@@ -1469,7 +1638,9 @@ window.addEventListener('resize', function() {
     Plotly.Plots.resize('pieChart');
     Plotly.Plots.resize('trendChart');
     Plotly.Plots.resize('categoryChart');
-    Plotly.Plots.resize('durationChart');
+    Plotly.Plots.resize('defectsChart');
+    Plotly.Plots.resize('burndownChart');
+    Plotly.Plots.resize('coverageChart');
 });
 
 // Configurar carga de archivos
@@ -2368,6 +2539,11 @@ function updateSummaryFromDetails() {
     
     // Actualizar la información del proyecto con el nuevo progreso calculado
     initializeDashboard();
+    
+    // Actualizar gráfico de cobertura con los nuevos datos
+    updateCoverageChart(testData.testDetails);
+    
+    console.log('✅ Resumen y cobertura actualizados desde detalles');
 }
 
 // Mostrar notificaciones
@@ -2475,7 +2651,8 @@ function loadEditorData() {
     try {
         const savedData = localStorage.getItem('qaEditorData');
         if (savedData) {
-            const currentHash = btoa(savedData); // Simple hash usando base64
+            // Crear hash simple usando la longitud y algunos caracteres del string
+            const currentHash = simpleHash(savedData);
             if (currentHash !== lastDataHash) {
                 const data = JSON.parse(savedData);
                 updateDashboardWithEditorData(data);
@@ -2486,6 +2663,18 @@ function loadEditorData() {
     } catch (error) {
         console.error('Error cargando datos del editor:', error);
     }
+}
+
+// Función helper para crear un hash simple que soporte Unicode
+function simpleHash(str) {
+    let hash = 0;
+    if (str.length === 0) return hash.toString();
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convertir a 32-bit integer
+    }
+    return hash.toString();
 }
 
 // Actualizar dashboard con datos del editor
