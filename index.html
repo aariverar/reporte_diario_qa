@@ -47,6 +47,10 @@
                             <i class="fas fa-upload"></i>
                             Cargar Archivo
                         </button>
+                        <button class="btn-share" id="shareButton" onclick="generateShareableLink()" style="display: none;">
+                            <i class="fas fa-share-alt"></i>
+                            Compartir Enlace
+                        </button>
                         <button class="btn-pdf" onclick="handlePDFGeneration()">
                             <i class="fas fa-file-pdf"></i>
                             Descargar PDF
@@ -469,6 +473,41 @@
             </div>
             <div class="chart-modal-body">
                 <div id="chartModalContainer" class="chart-modal-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para compartir enlace -->
+    <div id="shareModal" class="chart-modal-overlay" style="display: none;" onclick="closeShareModal(event)">
+        <div class="chart-modal-content" onclick="event.stopPropagation()">
+            <div class="chart-modal-header">
+                <h2 class="chart-modal-title">Compartir Dashboard</h2>
+                <button class="chart-modal-close" onclick="closeShareModal()">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+            <div class="chart-modal-body">
+                <div class="share-content">
+                    <p><i class="fas fa-info-circle"></i> Comparte este enlace para que otros puedan ver los mismos datos del dashboard:</p>
+                    
+                    <!-- Mostrar versión acortada del enlace -->
+                    <div class="share-link-preview">
+                        <span id="shareableLinkDisplay" class="shortened-url"></span>
+                        <small class="url-note">(enlace acortado para visualización)</small>
+                    </div>
+                    
+                    <!-- Campo oculto con enlace completo para copiar -->
+                    <div class="share-link-container">
+                        <input type="text" id="shareableLink" readonly class="share-link-input" style="display: none;">
+                        <button onclick="copyShareableLink()" class="btn-copy">
+                            <i class="fas fa-copy"></i> Copiar Enlace Completo
+                        </button>
+                    </div>
+                    
+                    <div class="share-info">
+                        <small><i class="fas fa-exclamation-triangle"></i> Este enlace contiene todos los datos del archivo cargado. Compártelo solo con personas autorizadas.</small>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

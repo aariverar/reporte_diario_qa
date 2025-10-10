@@ -3000,6 +3000,15 @@ function updateDashboardWithTransformedData(data) {
         // Guardar en localStorage para el editor
         localStorage.setItem('qaEditorData', JSON.stringify(data));
         
+        // Guardar datos para funcionalidad de compartir enlace
+        currentExcelData = data;
+        
+        // Mostrar el botón de compartir
+        const shareButton = document.getElementById('shareButton');
+        if (shareButton) {
+            shareButton.style.display = 'flex';
+        }
+        
         console.log('Dashboard actualizado exitosamente');
     } catch (error) {
         console.error('Error actualizando dashboard:', error);
@@ -4876,5 +4885,210 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         checkPDFLibraries();
     }, 2000); // Verificar después de 2 segundos para asegurar que las librerías se carguen
+    
+    // Verificar si hay datos en la URL al cargar la página
+    loadDataFromURL();
 });
+
+// ==========================================
+// FUNCIONALIDAD DE COMPARTIR ENLACE
+// ==========================================
+
+// Variable global para almacenar los datos cargados
+let currentExcelData = null;
+
+// Función para generar enlace compartible
+function generateShareableLink() {
+    if (!currentExcelData) {
+        alert('No hay datos cargados para compartir. Por favor, carga un archivo Excel primero.');
+        return;
+    }
+    
+    try {
+        // Comprimir y codificar los datos
+        const compressedData = compressData(currentExcelData);
+        const baseUrl = window.location.origin + window.location.pathname;
+        const shareableUrl = `${baseUrl}?data=${encodeURIComponent(compressedData)}`;
+        
+        // Mostrar el modal con el enlace
+        document.getElementById('shareableLink').value = shareableUrl;
+        
+        // Mostrar versión acortada en el display
+        const shortUrl = shortenUrl(shareableUrl);
+        document.getElementById('shareableLinkDisplay').textContent = shortUrl;
+        
+        document.getElementById('shareModal').style.display = 'flex';
+        
+        console.log('✅ Enlace compartible generado');
+    } catch (error) {
+        console.error('❌ Error al generar enlace compartible:', error);
+        alert('Error al generar el enlace compartible. Los datos pueden ser demasiado grandes.');
+    }
+}
+
+// Función para acortar URLs largas
+function shortenUrl(url) {
+    const maxLength = 60;
+    if (url.length <= maxLength) {
+        return url;
+    }
+    
+    const start = url.substring(0, 30);
+    const end = url.substring(url.length - 25);
+    return `${start}...${end}`;
+}
+
+// Función para copiar el enlace al portapapeles
+function copyShareableLink() {
+    const linkInput = document.getElementById('shareableLink');
+    
+    try {
+        // Usar la Clipboard API moderna si está disponible
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                showCopySuccess();
+            }).catch(() => {
+                fallbackCopy();
+            });
+        } else {
+            fallbackCopy();
+        }
+    } catch (err) {
+        console.error('❌ Error al copiar enlace:', err);
+        alert('No se pudo copiar el enlace. Puedes seleccionarlo manualmente.');
+    }
+}
+
+// Función de fallback para copiar
+function fallbackCopy() {
+    const linkInput = document.getElementById('shareableLink');
+    linkInput.style.display = 'block';
+    linkInput.select();
+    linkInput.setSelectionRange(0, 99999);
+    
+    document.execCommand('copy');
+    linkInput.style.display = 'none';
+    showCopySuccess();
+}
+
+// Función para mostrar feedback de copia exitosa
+function showCopySuccess() {
+    // Cambiar temporalmente el texto del botón para dar feedback
+    const copyBtn = document.querySelector('.btn-copy');
+    const originalText = copyBtn.innerHTML;
+    copyBtn.innerHTML = '<i class="fas fa-check"></i> ¡Copiado!';
+    copyBtn.style.background = '#28a745';
+    
+    setTimeout(() => {
+        copyBtn.innerHTML = originalText;
+        copyBtn.style.background = '';
+    }, 2000);
+    
+    console.log('✅ Enlace completo copiado al portapapeles');
+}
+
+// Función para cerrar el modal de compartir
+function closeShareModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('shareModal').style.display = 'none';
+}
+
+// Función para comprimir datos (usando base64 simple)
+function compressData(data) {
+    const jsonString = JSON.stringify(data);
+    return btoa(encodeURIComponent(jsonString));
+}
+
+// Función para descomprimir datos
+function decompressData(compressedData) {
+    try {
+        const jsonString = decodeURIComponent(atob(compressedData));
+        return JSON.parse(jsonString);
+    } catch (error) {
+        console.error('❌ Error al descomprimir datos:', error);
+        return null;
+    }
+}
+
+// Función para cargar datos desde URL
+function loadDataFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const dataParam = urlParams.get('data');
+    
+    if (dataParam) {
+        console.log('🔄 Cargando datos desde URL...');
+        const decompressedData = decompressData(dataParam);
+        
+        if (decompressedData) {
+            // Actualizar dashboard con los datos cargados
+            updateDashboardWithTransformedData(decompressedData);
+            
+            // Mostrar mensaje de información
+            showLoadedFromLinkMessage();
+            
+            console.log('✅ Datos cargados desde enlace compartido');
+        } else {
+            console.error('❌ No se pudieron descomprimir los datos del enlace');
+        }
+    }
+}
+
+// Función para mostrar mensaje cuando se carga desde enlace
+function showLoadedFromLinkMessage() {
+    const message = document.createElement('div');
+    message.className = 'loaded-from-link-message';
+    message.innerHTML = `
+        <i class="fas fa-info-circle"></i>
+        Datos cargados desde enlace compartido
+        <button onclick="this.parentElement.remove()" style="background: none; border: none; color: white; margin-left: 10px; cursor: pointer;">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    message.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background: var(--primary-color);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 500;
+        animation: slideInRight 0.3s ease-out;
+    `;
+    
+    document.body.appendChild(message);
+    
+    // Auto remover después de 5 segundos
+    setTimeout(() => {
+        if (message.parentElement) {
+            message.remove();
+        }
+    }, 5000);
+}
+
+// Agregar animación CSS para el mensaje
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .loaded-from-link-message {
+        animation: slideInRight 0.3s ease-out;
+    }
+`;
+document.head.appendChild(style);
 
