@@ -21,19 +21,20 @@ const testData = {
         planned: 45,    // Pruebas aún por ejecutar
         successful: 85, // Pruebas completadas exitosamente
         failed: 15,     // Pruebas que fallaron
-        pending: 5      // Pruebas en revisión/pendientes
+        pending: 3,     // Pruebas en revisión/pendientes
+        blocked: 2      // Pruebas bloqueadas
         // Total: 150 pruebas planificadas originalmente
     },
     trend: [
-        { date: '2024-09-01', planned: 150, successful: 0, failed: 0, pending: 0 },   // Día 1: Todo planificado
-        { date: '2024-09-02', planned: 130, successful: 15, failed: 3, pending: 2 },  // Día 2: Empezando
-        { date: '2024-09-03', planned: 110, successful: 28, failed: 6, pending: 6 },  // Día 3: Progresando
-        { date: '2024-09-04', planned: 90, successful: 42, failed: 8, pending: 10 },  // Día 4: Avanzando
-        { date: '2024-09-05', planned: 75, successful: 55, failed: 12, pending: 8 },  // Día 5: Más progreso
-        { date: '2024-09-06', planned: 60, successful: 68, failed: 14, pending: 8 },  // Día 6: Continuando
-        { date: '2024-09-07', planned: 50, successful: 75, failed: 15, pending: 10 }, // Día 7: Más avance
-        { date: '2024-09-08', planned: 45, successful: 80, failed: 15, pending: 10 }, // Día 8: Estado actual
-        { date: '2024-09-09', planned: 45, successful: 85, failed: 15, pending: 5 },  // Día 9: Hoy
+        { date: '2024-09-01', planned: 150, successful: 0, failed: 0, pending: 0, blocked: 0 },   // Día 1: Todo planificado
+        { date: '2024-09-02', planned: 130, successful: 15, failed: 3, pending: 2, blocked: 0 },  // Día 2: Empezando
+        { date: '2024-09-03', planned: 108, successful: 28, failed: 6, pending: 6, blocked: 2 },  // Día 3: Progresando, 2 bloqueadas
+        { date: '2024-09-04', planned: 88, successful: 42, failed: 8, pending: 10, blocked: 2 },  // Día 4: Avanzando
+        { date: '2024-09-05', planned: 72, successful: 55, failed: 12, pending: 8, blocked: 3 },  // Día 5: Más progreso, 1 nueva bloqueada
+        { date: '2024-09-06', planned: 58, successful: 68, failed: 14, pending: 8, blocked: 2 },  // Día 6: Continuando, desbloqueada 1
+        { date: '2024-09-07', planned: 50, successful: 75, failed: 15, pending: 8, blocked: 2 },  // Día 7: Más avance
+        { date: '2024-09-08', planned: 45, successful: 80, failed: 15, pending: 8, blocked: 2 },  // Día 8: Estado actual
+        { date: '2024-09-09', planned: 45, successful: 85, failed: 15, pending: 3, blocked: 2 },  // Día 9: Hoy
     ],
     categories: [
         { date: '2024-09-28', planned: 128, successful: 102, failed: 11, pending: 5 },
@@ -50,25 +51,39 @@ const testData = {
     defects: {
         summary: { critical: 2, high: 5, medium: 8, low: 3 },
         details: [
-            { id: 'DEF001', title: 'Sistema no responde después de login', severity: 'critical', status: 'open', escenario: 'API Tests', assignee: 'Ana García', dateFound: '18/09/2024' },
-            { id: 'DEF002', title: 'Error de validación en formulario de registro', severity: 'critical', status: 'open', escenario: 'UI Tests', assignee: 'Carlos López', dateFound: '20/09/2024' },
-            { id: 'DEF003', title: 'Timeout en procesamiento de pagos', severity: 'high', status: 'in-progress', escenario: 'Integration', assignee: 'María Rodríguez', dateFound: '19/09/2024' },
-            { id: 'DEF004', title: 'Interfaz no responsive en móviles', severity: 'high', status: 'open', escenario: 'UI Tests', assignee: 'Pedro Ruiz', dateFound: '21/09/2024' },
-            { id: 'DEF005', title: 'Performance lenta en búsquedas', severity: 'high', status: 'resolved', escenario: 'Performance', assignee: 'Laura Sánchez', dateFound: '17/09/2024' },
-            { id: 'DEF006', title: 'Mensajes de error poco claros', severity: 'medium', status: 'open', escenario: 'UI Tests', assignee: 'José Martín', dateFound: '22/09/2024' },
-            { id: 'DEF007', title: 'Falta validación de campos', severity: 'medium', status: 'in-progress', escenario: 'API Tests', assignee: 'Ana García', dateFound: '16/09/2024' },
-            { id: 'DEF008', title: 'Inconsistencia en colores del tema', severity: 'low', status: 'open', escenario: 'UI Tests', assignee: 'Carlos López', dateFound: '23/09/2024' }
+            { id: 'DEF001', title: 'Sistema no responde después de login', severity: 'critical', status: 'Open', escenario: 'API Tests', assignee: 'Ana García', dateFound: '18/09/2024' },
+            { id: 'DEF002', title: 'Error de validación en formulario de registro', severity: 'critical', status: 'Assigned', escenario: 'UI Tests', assignee: 'Carlos López', dateFound: '20/09/2024' },
+            { id: 'DEF003', title: 'Timeout en procesamiento de pagos', severity: 'high', status: 'In Progress DEV', escenario: 'Integration', assignee: 'María Rodríguez', dateFound: '19/09/2024' },
+            { id: 'DEF004', title: 'Interfaz no responsive en móviles', severity: 'high', status: 'Under Review', escenario: 'UI Tests', assignee: 'Pedro Ruiz', dateFound: '21/09/2024' },
+            { id: 'DEF005', title: 'Performance lenta en búsquedas', severity: 'high', status: 'Resolved', escenario: 'Performance', assignee: 'Laura Sánchez', dateFound: '17/09/2024' },
+            { id: 'DEF006', title: 'Mensajes de error poco claros', severity: 'medium', status: 'ReTesting', escenario: 'UI Tests', assignee: 'José Martín', dateFound: '22/09/2024' },
+            { id: 'DEF007', title: 'Falta validación de campos', severity: 'medium', status: 'In Progress DEV', escenario: 'API Tests', assignee: 'Ana García', dateFound: '16/09/2024' },
+            { id: 'DEF008', title: 'Inconsistencia en colores del tema', severity: 'low', status: 'Closed', escenario: 'UI Tests', assignee: 'Carlos López', dateFound: '23/09/2024' },
+            { id: 'DEF009', title: 'Error en validación de email', severity: 'medium', status: 'Reject', escenario: 'API Tests', assignee: 'Ana García', dateFound: '24/09/2024' },
+            { id: 'DEF010', title: 'Problema con scroll en móviles', severity: 'low', status: 'ReOpened', escenario: 'UI Tests', assignee: 'Pedro Ruiz', dateFound: '25/09/2024' }
         ]
     },
     testDetails: [
-        { id: 'T001', name: 'Login API Validation', escenario: 'API Tests', status: 'success', duration: '1.2 min', executor: 'Ana García' },
-        { id: 'T002', name: 'User Registration Flow', escenario: 'UI Tests', status: 'success', duration: '3.5 min', executor: 'Carlos López' },
-        { id: 'T003', name: 'Payment Processing', escenario: 'Integration', status: 'failure', duration: '2.1 min', executor: 'María Rodríguez' },
-        { id: 'T004', name: 'Database Connection', escenario: 'Integration', status: 'success', duration: '0.8 min', executor: 'José Martín' },
-        { id: 'T005', name: 'Load Testing', escenario: 'Performance', status: 'pending', duration: '-', executor: 'Laura Sánchez' },
-        { id: 'T006', name: 'Search Functionality', escenario: 'UI Tests', status: 'failure', duration: '1.9 min', executor: 'Pedro Ruiz' },
-        { id: 'T007', name: 'Email Notifications', escenario: 'API Tests', status: 'success', duration: '1.5 min', executor: 'Ana García' },
-        { id: 'T008', name: 'Security Headers', escenario: 'Security', status: 'success', duration: '0.5 min', executor: 'Carlos López' }
+        { id: 'T001', name: 'Login API Validation', escenario: 'API Tests', status: 'success', dia_ejecutado: '08/10/2024', executor: 'Ana García' },
+        { id: 'T002', name: 'User Registration Flow', escenario: 'UI Tests', status: 'success', dia_ejecutado: '08/10/2024', executor: 'Carlos López' },
+        { id: 'T003', name: 'Payment Processing', escenario: 'Integration', status: 'failure', dia_ejecutado: '07/10/2024', executor: 'María Rodríguez' },
+        { id: 'T004', name: 'Database Connection', escenario: 'Integration', status: 'success', dia_ejecutado: '08/10/2024', executor: 'José Martín' },
+        { id: 'T005', name: 'Load Testing', escenario: 'Performance', status: 'pending', dia_ejecutado: '', executor: 'Laura Sánchez' },
+        { id: 'T006', name: 'Search Functionality', escenario: 'UI Tests', status: 'failure', dia_ejecutado: '06/10/2024', executor: 'Pedro Ruiz' },
+        { id: 'T007', name: 'Email Notifications', escenario: 'API Tests', status: 'success', dia_ejecutado: '08/10/2024', executor: 'Ana García' },
+        { id: 'T008', name: 'Security Headers', escenario: 'Security', status: 'success', dia_ejecutado: '09/10/2024', executor: 'Carlos López' },
+        { id: 'T009', name: 'Password Reset Flow', escenario: 'UI Tests', status: 'pending', dia_ejecutado: '', executor: 'Ana García' },
+        { id: 'T010', name: 'API Rate Limiting', escenario: 'API Tests', status: 'blocked', dia_ejecutado: '', executor: 'José Martín' },
+        { id: 'T011', name: 'Mobile Responsive Design', escenario: 'UI Tests', status: 'failure', dia_ejecutado: '05/10/2024', executor: 'Pedro Ruiz' },
+        { id: 'T012', name: 'Database Backup Process', escenario: 'Integration', status: 'success', dia_ejecutado: '07/10/2024', executor: 'María Rodríguez' },
+        { id: 'T013', name: 'Stress Testing CPU', escenario: 'Performance', status: 'success', dia_ejecutado: '04/10/2024', executor: 'Laura Sánchez' },
+        { id: 'T014', name: 'HTTPS Certificate Validation', escenario: 'Security', status: 'success', dia_ejecutado: '09/10/2024', executor: 'Carlos López' },
+        { id: 'T015', name: 'Shopping Cart Functionality', escenario: 'UI Tests', status: 'pending', dia_ejecutado: '', executor: 'Pedro Ruiz' },
+        { id: 'T016', name: 'OAuth2 Authentication', escenario: 'API Tests', status: 'failure', dia_ejecutado: '03/10/2024', executor: 'Ana García' },
+        { id: 'T017', name: 'Cross-browser Compatibility', escenario: 'UI Tests', status: 'planned', dia_ejecutado: '', executor: 'Ana García' },
+        { id: 'T018', name: 'Memory Leak Testing', escenario: 'Performance', status: 'planned', dia_ejecutado: '', executor: 'Laura Sánchez' },
+        { id: 'T019', name: 'SQL Injection Prevention', escenario: 'Security', status: 'blocked', dia_ejecutado: '', executor: 'Carlos López' },
+        { id: 'T020', name: 'File Upload Validation', escenario: 'API Tests', status: 'planned', dia_ejecutado: '', executor: 'José Martín' }
     ]
 };
 
@@ -83,103 +98,122 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEditorIntegration();
 });
 
-// Calcular progreso del proyecto basado en pruebas ejecutadas (exitosas + fallidas) sobre total planificado
+// Calcular progreso del proyecto basado en tendencia histórica
 function calculateProjectProgress() {
-    const successful = testData.summary.successful || 0;
-    const failed = testData.summary.failed || 0;
-    const totalPlanned = testData.summary.planned + testData.summary.successful + 
-                        testData.summary.failed + testData.summary.pending + 
-                        (testData.summary.blocked || 0);
+    if (!testData.trend || testData.trend.length === 0) {
+        console.warn('⚠️ No hay datos de tendencia histórica disponibles');
+        // Fallback al cálculo anterior
+        const successful = testData.summary.successful || 0;
+        const failed = testData.summary.failed || 0;
+        const totalPlanned = testData.summary.planned + testData.summary.successful + 
+                            testData.summary.failed + testData.summary.pending + 
+                            (testData.summary.blocked || 0);
+        
+        if (totalPlanned === 0) return 0.0;
+        const executedTests = successful + failed;
+        return parseFloat(((executedTests / totalPlanned) * 100).toFixed(1));
+    }
     
-    if (totalPlanned === 0) {
+    // Calcular suma acumulada hasta el día actual basado en tendencia histórica
+    let totalPlannedToDate = 0;
+    let totalExecutedToDate = 0;
+    
+    testData.trend.forEach(dayData => {
+        // Sumar planificadas acumuladas hasta el día actual
+        totalPlannedToDate += dayData.planned || 0;
+        
+        // Sumar ejecutadas (exitosas + fallidas) acumuladas hasta el día actual
+        totalExecutedToDate += (dayData.successful || 0) + (dayData.failed || 0);
+    });
+    
+    if (totalPlannedToDate === 0) {
+        console.warn('⚠️ Total de pruebas planificadas en tendencia es 0');
         return 0.0;
     }
     
-    // El progreso real incluye todas las pruebas ejecutadas (exitosas + fallidas)
-    const executedTests = successful + failed;
-    const progress = parseFloat(((executedTests / totalPlanned) * 100).toFixed(1));
+    const progress = parseFloat(((totalExecutedToDate / totalPlannedToDate) * 100).toFixed(1));
     
-    console.log(`📊 PROGRESO REAL DETALLADO:`);
-    console.log(`   • Pruebas exitosas: ${successful}`);
-    console.log(`   • Pruebas fallidas: ${failed}`);
-    console.log(`   • Total ejecutadas: ${executedTests} (exitosas + fallidas)`);
-    console.log(`   • Total planificadas: ${totalPlanned}`);
-    console.log(`   • Progreso real: ${progress}% = (${executedTests}/${totalPlanned}) * 100`);
+    console.log(`📊 PROGRESO REAL BASADO EN TENDENCIA HISTÓRICA:`);
+    console.log(`   • Total planificadas acumuladas: ${totalPlannedToDate}`);
+    console.log(`   • Total ejecutadas acumuladas: ${totalExecutedToDate}`);
+    console.log(`   • Progreso real: ${progress}% = (${totalExecutedToDate}/${totalPlannedToDate}) * 100`);
+    console.log(`   • Días en tendencia: ${testData.trend.length}`);
     
     return progress;
 }
 
-// Función para calcular el progreso planificado basado en fechas y tendencia
+// Función para calcular el progreso planificado basado en tendencia histórica
 function calculatePlannedProgress() {
-    try {
-        // Obtener fechas del proyecto
-        const startDateStr = testData.projectInfo.startDate;
-        const endDateStr = testData.projectInfo.endDate;
-        
-        console.log(`Fechas recibidas: Start="${startDateStr}", End="${endDateStr}"`);
-        
-        if (!startDateStr || !endDateStr) {
-            console.warn('Fechas del proyecto no disponibles');
-            return 0;
-        }
-        
-        // Función helper para parsear fechas DD/MM/YYYY o DD/MM/YYYY HH:MM
-        function parseProjectDate(dateStr) {
-            // Separar fecha y hora si existe
-            const parts = dateStr.split(' ');
-            const datePart = parts[0]; // DD/MM/YYYY
+    if (!testData.trend || testData.trend.length === 0) {
+        console.warn('⚠️ No hay datos de tendencia histórica para progreso planificado');
+        // Fallback al cálculo por fechas
+        try {
+            const startDateStr = testData.projectInfo.startDate;
+            const endDateStr = testData.projectInfo.endDate;
             
-            const [day, month, year] = datePart.split('/').map(Number);
+            if (!startDateStr || !endDateStr) return 0;
             
-            if (isNaN(day) || isNaN(month) || isNaN(year)) {
-                throw new Error(`Formato de fecha inválido: ${dateStr}`);
+            function parseProjectDate(dateStr) {
+                const parts = dateStr.split(' ');
+                const datePart = parts[0];
+                const [day, month, year] = datePart.split('/').map(Number);
+                if (isNaN(day) || isNaN(month) || isNaN(year)) {
+                    throw new Error(`Formato de fecha inválido: ${dateStr}`);
+                }
+                return new Date(year, month - 1, day);
             }
             
-            return new Date(year, month - 1, day);
+            const startDate = parseProjectDate(startDateStr);
+            const endDate = parseProjectDate(endDateStr);
+            const now = new Date();
+            
+            const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            const daysPassed = Math.ceil((now - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            
+            if (daysPassed <= 0) return 0;
+            if (daysPassed >= totalDays) return 100.0;
+            
+            return parseFloat(((daysPassed / totalDays) * 100).toFixed(1));
+        } catch (error) {
+            console.error('Error en fallback de progreso planificado:', error);
+            return 65.0;
         }
-        
-        const startDate = parseProjectDate(startDateStr);
-        const endDate = parseProjectDate(endDateStr);
-        const currentDate = new Date();
-        
-        // Validar fechas
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-            throw new Error('Fechas del proyecto inválidas');
+    }
+    
+    // Calcular progreso planificado basado en la suma acumulada de planificadas en tendencia histórica
+    let totalPlannedAcumulated = 0;
+    
+    // Obtener la fecha actual para comparar con los días de la tendencia
+    const today = new Date();
+    
+    // Filtrar los días hasta la fecha actual y sumar las planificadas
+    testData.trend.forEach(dayData => {
+        const dayDate = new Date(dayData.date);
+        if (dayDate <= today) {
+            totalPlannedAcumulated += dayData.planned || 0;
         }
-        
-        // Calcular días totales del proyecto y días transcurridos
-        const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-        const daysPassed = Math.ceil((currentDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-        
-        console.log(`Fechas parseadas: ${startDate.toDateString()} a ${endDate.toDateString()}`);
-        console.log(`Días totales: ${totalDays}, Días transcurridos: ${daysPassed}`);
-        
-        // Si no hemos empezado, progreso planificado es 0
-        if (daysPassed <= 0) {
-            console.log('El proyecto aún no ha comenzado');
-            return 0;
-        }
-        
-        // Si ya terminó el proyecto, progreso planificado debería ser 100
-        if (daysPassed >= totalDays) {
-            console.log('El proyecto ya debería haber terminado');
-            return 100.0;
-        }
-        
-        // Calcular progreso planificado basado en distribución lineal
-        let plannedProgress = parseFloat(((daysPassed / totalDays) * 100).toFixed(1));
-        
-        // Asegurar que el progreso planificado esté entre 0 y 100
-        plannedProgress = Math.max(0, Math.min(100, plannedProgress));
-        
-        console.log(`Progreso planificado calculado: ${daysPassed} días de ${totalDays} = ${plannedProgress}%`);
-        
-        return plannedProgress;
-        
-    } catch (error) {
-        console.error('Error calculando progreso planificado:', error);
-        
-        // En caso de error, usar fechas por defecto
+    });
+    
+    // Calcular el total de planificadas de todo el proyecto
+    let totalProjectPlanned = 0;
+    testData.trend.forEach(dayData => {
+        totalProjectPlanned += dayData.planned || 0;
+    });
+    
+    if (totalProjectPlanned === 0) {
+        console.warn('⚠️ Total de pruebas planificadas del proyecto es 0');
+        return 0;
+    }
+    
+    const plannedProgress = parseFloat(((totalPlannedAcumulated / totalProjectPlanned) * 100).toFixed(1));
+    
+    console.log(`📅 PROGRESO PLANIFICADO BASADO EN TENDENCIA HISTÓRICA:`);
+    console.log(`   • Planificadas acumuladas hasta hoy: ${totalPlannedAcumulated}`);
+    console.log(`   • Total planificadas del proyecto: ${totalProjectPlanned}`);
+    console.log(`   • Progreso planificado: ${plannedProgress}% = (${totalPlannedAcumulated}/${totalProjectPlanned}) * 100`);
+    console.log(`   • Días en tendencia: ${testData.trend.length}`);
+    
+    return plannedProgress;
         const startDate = new Date(2024, 8, 1); // 01/09/2024
         const endDate = new Date(2024, 8, 30);   // 30/09/2024
         const currentDate = new Date();
@@ -188,13 +222,7 @@ function calculatePlannedProgress() {
         const daysPassed = Math.ceil((currentDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
         
         if (daysPassed <= 0) return 0.0;
-        if (daysPassed >= totalDays) return 100.0;
-        
-        const fallbackProgress = Math.max(0, Math.min(100, parseFloat(((daysPassed / totalDays) * 100).toFixed(1))));
-        console.log(`Usando progreso fallback: ${fallbackProgress}%`);
-        
-        return fallbackProgress;
-    }
+    return plannedProgress;
 }
 
 // Inicializar dashboard
@@ -596,7 +624,17 @@ function createTrendChart() {
         marker: { size: 6 }
     };
 
-    const data = [plannedTrace, successTrace, failureTrace, pendingTrace];
+    const blockedTrace = {
+        x: dates,
+        y: trendData.map(d => d.blocked || 0),
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Bloqueadas',
+        line: { color: '#6B7280', width: 3 },
+        marker: { size: 6 }
+    };
+
+    const data = [plannedTrace, successTrace, failureTrace, pendingTrace, blockedTrace];
 
     const layout = {
         margin: { t: 20, b: 40, l: 40, r: 20 },
@@ -1210,36 +1248,110 @@ let defectsCurrentPage = 1;
 let defectsItemsPerPage = 5;
 let filteredDefects = [];
 
-// Poblar tabla de detalles de pruebas con paginación
-function populateTestTable() {
-    // Si no hay filtro aplicado, usar todos los tests
-    if (filteredTests.length === 0) {
-        filteredTests = [...testData.testDetails];
+// Función para resaltar términos de búsqueda
+function highlightSearchTerm(text, searchTerm) {
+    if (!searchTerm || searchTerm.trim() === '') {
+        return text;
     }
     
+    const searchRegex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(searchRegex, '<mark style="background-color: #fff3cd; color: #856404; padding: 1px 2px; border-radius: 2px;">$1</mark>');
+}
+
+// Poblar tabla de detalles de pruebas con paginación mejorada
+function populateTestTable() {
     const tableBody = document.getElementById('testTableBody');
+    if (!tableBody) return;
+    
+    // Verificar si hay datos de pruebas
+    if (!testData.testDetails || testData.testDetails.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="no-data-message">
+                    <div class="no-data-content">
+                        <i class="fas fa-vial"></i>
+                        <p>No hay pruebas registradas</p>
+                        <small>Las pruebas aparecerán aquí cuando se carguen datos</small>
+                    </div>
+                </td>
+            </tr>
+        `;
+        updatePaginationControls(0, 0);
+        return;
+    }
+    
+    // Si no hay filtro aplicado, usar todas las pruebas
+    if (filteredTests.length === 0) {
+        // Verificar si realmente no hay filtros aplicados
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('testStatusFilter');
+        
+        const searchTerm = searchInput ? searchInput.value.trim() : '';
+        const statusValue = statusFilter ? statusFilter.value : '';
+        
+        const hasActiveFilters = searchTerm !== '' || statusValue !== '';
+        
+        if (!hasActiveFilters) {
+            filteredTests = [...testData.testDetails];
+        }
+    }
+    
     const totalItems = filteredTests.length;
     const totalPages = itemsPerPage === 100 ? 1 : Math.ceil(totalItems / itemsPerPage);
+    
+    // Limpiar tabla
+    tableBody.innerHTML = '';
+    
+    // Si no hay resultados después del filtrado, mostrar mensaje
+    if (totalItems === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="no-results-message">
+                    <div class="no-results-content">
+                        <i class="fas fa-search"></i>
+                        <p>No se encontraron pruebas que coincidan con los filtros</p>
+                        <small>Intente modificar o limpiar los filtros para ver más resultados</small>
+                    </div>
+                </td>
+            </tr>
+        `;
+        updatePaginationControls(0, 0);
+        return;
+    }
     
     // Calcular índices para la página actual
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = itemsPerPage === 100 ? totalItems : Math.min(startIndex + itemsPerPage, totalItems);
     
-    // Limpiar tabla
-    tableBody.innerHTML = '';
+    // Obtener término de búsqueda actual para resaltado
+    const searchInput = document.getElementById('searchInput');
+    const currentSearchTerm = searchInput ? searchInput.value.trim() : '';
     
     // Mostrar tests de la página actual
     const testsToShow = filteredTests.slice(startIndex, endIndex);
     
     testsToShow.forEach(test => {
         const row = document.createElement('tr');
+        
+        // Aplicar resaltado si hay término de búsqueda
+        const highlightedId = highlightSearchTerm(test.id, currentSearchTerm);
+        const highlightedName = highlightSearchTerm(test.name, currentSearchTerm);
+        const highlightedEscenario = highlightSearchTerm(test.escenario, currentSearchTerm);
+        const statusText = getStatusText(test.status);
+        const highlightedStatus = highlightSearchTerm(statusText, currentSearchTerm);
+        const highlightedExecutor = highlightSearchTerm(test.executor, currentSearchTerm);
+        
+        // Formatear fecha de ejecución
+        const fechaEjecucion = test.dia_ejecutado ? formatFecha(test.dia_ejecutado) : '-';
+        const highlightedFechaEjecucion = highlightSearchTerm(fechaEjecucion, currentSearchTerm);
+        
         row.innerHTML = `
-            <td>${test.id}</td>
-            <td>${test.name}</td>
-            <td>${test.escenario}</td>
-            <td><span class="status-badge ${test.status}">${getStatusText(test.status)}</span></td>
-            <td>${test.duration}</td>
-            <td>${test.executor}</td>
+            <td>${highlightedId}</td>
+            <td>${highlightedName}</td>
+            <td>${highlightedEscenario}</td>
+            <td><span class="status-badge ${test.status}">${highlightedStatus}</span></td>
+            <td>${highlightedFechaEjecucion}</td>
+            <td>${highlightedExecutor}</td>
         `;
         tableBody.appendChild(row);
     });
@@ -1486,28 +1598,100 @@ function getStatusText(status) {
     }
 }
 
-// Poblar tabla de defectos
-function populateDefectsTable() {
-    // Si no hay filtro aplicado, usar todos los defectos
-    if (filteredDefects.length === 0) {
-        filteredDefects = testData.defects && testData.defects.details ? [...testData.defects.details] : [];
+// Función para formatear fechas (solo fecha, sin hora)
+function formatFecha(fechaStr) {
+    console.log('formatFecha recibe:', fechaStr, typeof fechaStr);
+    
+    if (!fechaStr || fechaStr === '') return '-';
+    
+    // Si ya está en formato DD/MM/AAAA, devolverlo tal como está
+    if (typeof fechaStr === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(fechaStr)) {
+        const [dia, mes, año] = fechaStr.split('/');
+        return `${dia.padStart(2, '0')}/${mes.padStart(2, '0')}/${año}`;
     }
     
+    // Si viene como string vacío o guion, mantener
+    if (fechaStr === '-' || fechaStr.trim() === '') return '-';
+    
+    // Para cualquier otro caso, intentar usar formatDateForDashboard
+    try {
+        const fechaProcessada = formatDateForDashboard(fechaStr);
+        return fechaProcessada || '-';
+    } catch (error) {
+        console.warn('Error formateando fecha:', fechaStr, error);
+        return '-';
+    }
+}
+
+// Poblar tabla de defectos
+function populateDefectsTable() {
     const tableBody = document.getElementById('defectsTableBody');
     if (!tableBody) return;
     
+    // Verificar si hay datos de defectos
+    if (!testData.defects || !testData.defects.details || testData.defects.details.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="8" class="no-data-message">
+                    <div class="no-data-content">
+                        <i class="fas fa-bug"></i>
+                        <p>No hay defectos registrados</p>
+                        <small>Los defectos aparecerán aquí cuando se carguen datos</small>
+                    </div>
+                </td>
+            </tr>
+        `;
+        updateDefectsPaginationControls(0, 0);
+        return;
+    }
+    
+    // Si no hay filtro aplicado, usar todos los defectos
+    if (filteredDefects.length === 0) {
+        // Verificar si realmente no hay filtros aplicados
+        const searchTerm = document.getElementById('defectsSearchInput')?.value || '';
+        const severityFilter = document.getElementById('severityFilter')?.value || '';
+        const statusFilter = document.getElementById('statusFilter')?.value || '';
+        
+        const hasActiveFilters = searchTerm !== '' || severityFilter !== '' || statusFilter !== '';
+        
+        if (!hasActiveFilters) {
+            filteredDefects = [...testData.defects.details];
+        }
+    }
+    
     const totalItems = filteredDefects.length;
     const totalPages = defectsItemsPerPage === 100 ? 1 : Math.ceil(totalItems / defectsItemsPerPage);
+    
+    // Limpiar tabla
+    tableBody.innerHTML = '';
+    
+    // Si no hay resultados después del filtrado, mostrar mensaje
+    if (totalItems === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="8" class="no-results-message">
+                    <div class="no-results-content">
+                        <i class="fas fa-search"></i>
+                        <p>No se encontraron defectos que coincidan con los filtros</p>
+                        <small>Intente modificar o limpiar los filtros para ver más resultados</small>
+                    </div>
+                </td>
+            </tr>
+        `;
+        updateDefectsPaginationControls(0, 0);
+        return;
+    }
     
     // Calcular índices para la página actual
     const startIndex = (defectsCurrentPage - 1) * defectsItemsPerPage;
     const endIndex = defectsItemsPerPage === 100 ? totalItems : Math.min(startIndex + defectsItemsPerPage, totalItems);
     
-    // Limpiar tabla
-    tableBody.innerHTML = '';
-    
     // Mostrar defectos de la página actual
     const defectsToShow = filteredDefects.slice(startIndex, endIndex);
+    
+    // Obtener término de búsqueda actual para resaltado
+    const searchInput = document.getElementById('defectsSearchInput');
+    const currentSearchTerm = searchInput ? searchInput.value.trim() : '';
     
     defectsToShow.forEach(defect => {
         const row = document.createElement('tr');
@@ -1516,13 +1700,19 @@ function populateDefectsTable() {
         const statusClass = getStatusClass(defect.status);
         const daysOpenClass = getDaysOpenClass(daysOpen, defect.status);
         
+        // Aplicar resaltado si hay término de búsqueda
+        const highlightedId = highlightSearchTerm(defect.id, currentSearchTerm);
+        const highlightedTitle = highlightSearchTerm(defect.title, currentSearchTerm);
+        const highlightedAssignee = highlightSearchTerm(defect.assignee, currentSearchTerm);
+        const highlightedEscenario = highlightSearchTerm(defect.escenario, currentSearchTerm);
+        
         row.innerHTML = `
-            <td><strong>${defect.id}</strong></td>
-            <td>${defect.title}</td>
+            <td><strong>${highlightedId}</strong></td>
+            <td>${highlightedTitle}</td>
             <td><span class="defect-severity ${severityClass}">${defect.severity}</span></td>
             <td><span class="defect-status ${statusClass}">${defect.status}</span></td>
-            <td>${defect.escenario}</td>
-            <td>${defect.assignee}</td>
+            <td>${highlightedEscenario}</td>
+            <td>${highlightedAssignee}</td>
             <td>${formatDate(defect.dateFound)}</td>
             <td><span class="days-open ${daysOpenClass}">${daysOpen} días</span></td>
         `;
@@ -1603,17 +1793,23 @@ function getSeverityClass(severity) {
 // Obtener clase CSS de estado
 function getStatusClass(status) {
     switch(status) {
-        case 'Abierto': return 'open';
-        case 'En Progreso': return 'in-progress';
-        case 'Resuelto': return 'resolved';
-        case 'Cerrado': return 'closed';
+        case 'Open': return 'open';
+        case 'Reject': return 'reject';
+        case 'Assigned': return 'assigned';
+        case 'Under Review': return 'under-review';
+        case 'In Progress DEV': return 'in-progress-dev';
+        case 'Resolved': return 'resolved';
+        case 'ReTesting': return 'retesting';
+        case 'ReOpened': return 'reopened';
+        case 'Closed': return 'closed';
         default: return 'open';
     }
 }
 
 // Obtener clase CSS para días abierto
 function getDaysOpenClass(days, status) {
-    if (status === 'Cerrado' || status === 'Resuelto') return 'normal';
+    // Estados que se consideran cerrados/terminados
+    if (status === 'Closed' || status === 'Resolved' || status === 'Reject') return 'normal';
     if (days > 30) return 'critical';
     if (days > 14) return 'warning';
     return 'normal';
@@ -1678,8 +1874,11 @@ function filterDefects() {
         filteredDefects = [];
         defectsCurrentPage = 1;
         populateDefectsTable();
+        updateDefectsFilterInfo('', 0, 0);
         return;
     }
+    
+    const totalDefects = testData.defects.details.length;
     
     // Filtrar defectos basado en los criterios de búsqueda
     if (searchTerm === '' && severityFilter === '' && statusFilter === '') {
@@ -1688,7 +1887,8 @@ function filterDefects() {
         filteredDefects = testData.defects.details.filter(defect => {
             const matchesSearch = defect.title.toLowerCase().includes(searchTerm) ||
                                 defect.id.toLowerCase().includes(searchTerm) ||
-                                defect.assignee.toLowerCase().includes(searchTerm);
+                                defect.assignee.toLowerCase().includes(searchTerm) ||
+                                defect.escenario.toLowerCase().includes(searchTerm);
             const matchesSeverity = !severityFilter || defect.severity === severityFilter;
             const matchesStatus = !statusFilter || defect.status === statusFilter;
             
@@ -1696,9 +1896,99 @@ function filterDefects() {
         });
     }
     
+    // Actualizar información de filtrado
+    const hasActiveFilters = searchTerm !== '' || severityFilter !== '' || statusFilter !== '';
+    const filterDescription = buildFilterDescription(searchTerm, severityFilter, statusFilter);
+    updateDefectsFilterInfo(filterDescription, filteredDefects.length, totalDefects, hasActiveFilters);
+    
     // Resetear a la primera página y actualizar la tabla
     defectsCurrentPage = 1;
     populateDefectsTable();
+}
+
+// Construir descripción del filtro activo
+function buildFilterDescription(searchTerm, severityFilter, statusFilter) {
+    const filters = [];
+    
+    if (searchTerm) {
+        filters.push(`texto: "${searchTerm}"`);
+    }
+    if (severityFilter) {
+        filters.push(`severidad: ${severityFilter}`);
+    }
+    if (statusFilter) {
+        filters.push(`estado: ${statusFilter}`);
+    }
+    
+    return filters.length > 0 ? `Filtrado por ${filters.join(', ')}` : '';
+}
+
+// Actualizar información de filtrado de defectos
+function updateDefectsFilterInfo(filterDescription, foundResults, totalResults, hasActiveFilters = false) {
+    // Buscar si existe un elemento para mostrar info de filtrado
+    let filterInfo = document.getElementById('defectsFilterInfo');
+    
+    if (!filterInfo) {
+        // Crear elemento si no existe
+        filterInfo = document.createElement('div');
+        filterInfo.id = 'defectsFilterInfo';
+        filterInfo.className = 'filter-results-info';
+        
+        // Insertar después de los controles de filtrado
+        const tableHeader = document.querySelector('.defects-details .table-header');
+        if (tableHeader) {
+            const tableContainer = tableHeader.nextElementSibling;
+            if (tableContainer) {
+                tableHeader.parentNode.insertBefore(filterInfo, tableContainer);
+            }
+        }
+    }
+    
+    // Actualizar contenido
+    if (!hasActiveFilters) {
+        filterInfo.style.display = 'none';
+    } else {
+        filterInfo.style.display = 'block';
+        if (foundResults === 0) {
+            filterInfo.innerHTML = `
+                <i class="fas fa-exclamation-triangle"></i> 
+                No se encontraron defectos. ${filterDescription}
+                <button class="btn-clear-filters" onclick="clearDefectsFilters()">
+                    <i class="fas fa-times"></i> Limpiar filtros
+                </button>
+            `;
+            filterInfo.className = 'filter-results-info no-results';
+        } else {
+            filterInfo.innerHTML = `
+                <i class="fas fa-filter"></i> 
+                ${foundResults} de ${totalResults} defecto(s) mostrado(s). ${filterDescription}
+                <button class="btn-clear-filters" onclick="clearDefectsFilters()">
+                    <i class="fas fa-times"></i> Limpiar filtros
+                </button>
+            `;
+            filterInfo.className = 'filter-results-info with-results';
+        }
+    }
+    
+    // Log en consola
+    if (hasActiveFilters) {
+        console.log(`🔍 Filtro de defectos: ${foundResults}/${totalResults} - ${filterDescription}`);
+    }
+}
+
+// Limpiar filtros de defectos
+function clearDefectsFilters() {
+    // Limpiar todos los filtros
+    const searchInput = document.getElementById('defectsSearchInput');
+    const severityFilter = document.getElementById('severityFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    
+    if (searchInput) searchInput.value = '';
+    if (severityFilter) severityFilter.value = '';
+    if (statusFilter) statusFilter.value = '';
+    
+    // Volver a filtrar (que mostrará todos los defectos)
+    filterDefects();
 }
 
 // Exportar defectos
@@ -1745,6 +2035,14 @@ function setupEventListeners() {
     if (searchInput) {
         searchInput.addEventListener('input', function() {
             filterTable(this.value);
+        });
+    }
+
+    // Filtro por estado en la tabla de pruebas
+    const testStatusFilter = document.getElementById('testStatusFilter');
+    if (testStatusFilter) {
+        testStatusFilter.addEventListener('change', function() {
+            filterTable();
         });
     }
 
@@ -1808,26 +2106,182 @@ function setupEventListeners() {
     setInterval(updateDashboard, 300000);
 }
 
-// Filtrar tabla con paginación
-function filterTable(searchTerm) {
-    const searchTermLower = searchTerm.toLowerCase();
+// Filtrar tabla de pruebas con búsqueda y filtro por estado
+function filterTable(searchTerm = null) {
+    // Obtener valores de filtros
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('testStatusFilter');
     
-    // Filtrar los tests basado en el término de búsqueda
-    if (searchTerm === '') {
+    const searchTermValue = searchTerm !== null ? searchTerm : (searchInput ? searchInput.value : '');
+    const searchTermLower = searchTermValue.toLowerCase().trim();
+    const statusFilterValue = statusFilter ? statusFilter.value : '';
+    
+    // Verificar si hay filtros activos
+    const hasActiveFilters = searchTermLower !== '' || statusFilterValue !== '';
+    
+    // Filtrar los tests basado en búsqueda y filtro de estado
+    if (!hasActiveFilters) {
         filteredTests = [...testData.testDetails];
     } else {
         filteredTests = testData.testDetails.filter(test => {
-            return test.id.toLowerCase().includes(searchTermLower) ||
-                   test.name.toLowerCase().includes(searchTermLower) ||
-                   test.escenario.toLowerCase().includes(searchTermLower) ||
-                   getStatusText(test.status).toLowerCase().includes(searchTermLower) ||
-                   test.executor.toLowerCase().includes(searchTermLower);
+            // Filtro de búsqueda por texto
+            let matchesSearch = true;
+            if (searchTermLower !== '') {
+                const searchableFields = [
+                    test.id,                              // ID de la prueba
+                    test.name,                            // Nombre de la prueba
+                    test.escenario,                       // Escenario
+                    getStatusText(test.status),           // Estado (traducido)
+                    test.status,                          // Estado original
+                    test.executor,                        // Ejecutor
+                    test.dia_ejecutado,                   // Fecha de ejecución
+                    formatFecha(test.dia_ejecutado)       // Fecha formateada
+                ];
+                
+                matchesSearch = searchableFields.some(field => {
+                    return field && field.toString().toLowerCase().includes(searchTermLower);
+                });
+            }
+            
+            // Filtro por estado
+            let matchesStatus = true;
+            if (statusFilterValue !== '') {
+                matchesStatus = test.status === statusFilterValue;
+            }
+            
+            return matchesSearch && matchesStatus;
         });
     }
+    
+    // Actualizar información de filtrado
+    const filterDescription = buildTestFilterDescription(searchTermLower, statusFilterValue);
+    updateTestFilterInfo(filterDescription, filteredTests.length, testData.testDetails.length, hasActiveFilters);
     
     // Resetear a la primera página y actualizar la tabla
     currentPage = 1;
     populateTestTable();
+}
+
+// Construir descripción del filtro activo para pruebas
+function buildTestFilterDescription(searchTerm, statusFilter) {
+    const filters = [];
+    
+    if (searchTerm) {
+        filters.push(`texto: "${searchTerm}"`);
+    }
+    if (statusFilter) {
+        const statusText = getStatusText(statusFilter);
+        filters.push(`estado: ${statusText}`);
+    }
+    
+    return filters.length > 0 ? `Filtrado por ${filters.join(', ')}` : '';
+}
+
+// Actualizar información de filtrado de pruebas
+function updateTestFilterInfo(filterDescription, foundResults, totalResults, hasActiveFilters = false) {
+    // Buscar si existe un elemento para mostrar info de filtrado
+    let filterInfo = document.getElementById('testFilterInfo');
+    
+    if (!filterInfo) {
+        // Crear elemento si no existe
+        filterInfo = document.createElement('div');
+        filterInfo.id = 'testFilterInfo';
+        filterInfo.className = 'filter-results-info';
+        
+        // Insertar después de los controles de filtrado
+        const tableHeader = document.querySelector('section.table-section:not(.defects-details) .table-header');
+        if (tableHeader) {
+            const tableContainer = tableHeader.nextElementSibling;
+            if (tableContainer) {
+                tableHeader.parentNode.insertBefore(filterInfo, tableContainer);
+            }
+        }
+    }
+    
+    // Actualizar contenido
+    if (!hasActiveFilters) {
+        filterInfo.style.display = 'none';
+    } else {
+        filterInfo.style.display = 'block';
+        if (foundResults === 0) {
+            filterInfo.innerHTML = `
+                <i class="fas fa-exclamation-triangle"></i> 
+                No se encontraron pruebas. ${filterDescription}
+                <button class="btn-clear-filters" onclick="clearTestFilters()">
+                    <i class="fas fa-times"></i> Limpiar filtros
+                </button>
+            `;
+            filterInfo.className = 'filter-results-info no-results';
+        } else {
+            filterInfo.innerHTML = `
+                <i class="fas fa-filter"></i> 
+                ${foundResults} de ${totalResults} prueba(s) mostrada(s). ${filterDescription}
+                <button class="btn-clear-filters" onclick="clearTestFilters()">
+                    <i class="fas fa-times"></i> Limpiar filtros
+                </button>
+            `;
+            filterInfo.className = 'filter-results-info with-results';
+        }
+    }
+    
+    // Log en consola
+    if (hasActiveFilters) {
+        console.log(`🔍 Filtro de pruebas: ${foundResults}/${totalResults} - ${filterDescription}`);
+    }
+}
+
+// Limpiar filtros de pruebas
+function clearTestFilters() {
+    // Limpiar todos los filtros
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('testStatusFilter');
+    
+    if (searchInput) searchInput.value = '';
+    if (statusFilter) statusFilter.value = '';
+    
+    // Volver a filtrar (que mostrará todas las pruebas)
+    filterTable();
+}
+
+// Actualizar información de resultados de búsqueda
+function updateSearchResultsInfo(searchTerm, foundResults, totalResults) {
+    // Buscar si existe un elemento para mostrar info de búsqueda
+    let searchInfo = document.getElementById('searchResultsInfo');
+    
+    if (!searchInfo) {
+        // Crear elemento si no existe
+        searchInfo = document.createElement('div');
+        searchInfo.id = 'searchResultsInfo';
+        searchInfo.className = 'search-results-info';
+        
+        // Insertar después del input de búsqueda
+        const searchBox = document.querySelector('.search-box');
+        if (searchBox) {
+            searchBox.appendChild(searchInfo);
+        }
+    }
+    
+    // Actualizar contenido
+    if (searchTerm.trim() === '') {
+        searchInfo.textContent = '';
+        searchInfo.style.display = 'none';
+    } else {
+        searchInfo.style.display = 'block';
+        if (foundResults === 0) {
+            searchInfo.innerHTML = `<i class="fas fa-exclamation-triangle"></i> No se encontraron resultados para "${searchTerm}"`;
+            searchInfo.style.color = '#dc3545';
+        } else {
+            searchInfo.innerHTML = `<i class="fas fa-check-circle"></i> ${foundResults} de ${totalResults} prueba(s) encontrada(s)`;
+            searchInfo.style.color = '#28a745';
+        }
+    }
+    
+    // Log en consola
+    if (searchTerm !== '' && foundResults === 0) {
+        console.log(`🔍 Búsqueda "${searchTerm}": No se encontraron resultados`);
+    } else if (searchTerm !== '') {
+        console.log(`🔍 Búsqueda "${searchTerm}": ${foundResults} resultado(s) encontrado(s)`);
+    }
 }
 
 // Exportar datos
@@ -1837,7 +2291,7 @@ function exportData() {
         'Nombre de la Prueba': test.name,
         'Escenario': test.escenario,
         'Estado': getStatusText(test.status),
-        'Duración': test.duration,
+        'Fecha Ejecución': formatFecha(test.dia_ejecutado),
         'Ejecutor': test.executor
     }));
 
@@ -2348,16 +2802,25 @@ function transformMultiProjectData(data) {
             console.log('Cantidad de pruebas en Excel:', data.pruebas.length);
             console.log('Muestra de pruebas originales:', data.pruebas.slice(0, 3));
             
-            const mappedTests = data.pruebas.map(p => ({
-                id: p.test_id,
-                name: p.nombre_prueba,
-                escenario: p.escenario,
-                status: mapExcelStatusToDashboard(p.estado),
-                duration: p.duracion_minutos ? p.duracion_minutos + ' min' : '-',
-                executor: p.ejecutor,
-                environment: p.ambiente,
-                comments: p.comentarios
-            }));
+            const mappedTests = data.pruebas.map(p => {
+                // Debug específico para la fecha de ejecución
+                console.log(`Prueba ${p.test_id}: dia_ejecutado =`, p.dia_ejecutado, `(tipo: ${typeof p.dia_ejecutado})`);
+                
+                // Procesar la fecha de ejecución usando la función correcta
+                const fechaFormateada = formatDateForDashboard(p.dia_ejecutado);
+                console.log(`Fecha formateada para ${p.test_id}:`, fechaFormateada);
+                
+                return {
+                    id: p.test_id,
+                    name: p.nombre_prueba,
+                    escenario: p.escenario,
+                    status: mapExcelStatusToDashboard(p.estado),
+                    dia_ejecutado: fechaFormateada,
+                    executor: p.ejecutor,
+                    environment: p.ambiente,
+                    comments: p.comentarios
+                };
+            });
             
             console.log('Pruebas después de mapeo:', mappedTests.slice(0, 3));
             console.log('===============================');
@@ -2491,30 +2954,15 @@ function formatDateForDashboard(dateValue) {
         return String(dateValue); // Devolver el valor original como string
     }
     
-    // Formatear fecha
+    // Formatear fecha (solo fecha, sin hora)
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
     
-    // Si la fecha original incluía hora, preservarla
+    // Siempre devolver solo la fecha sin hora
     let formatted = `${day}/${month}/${year}`;
     
-    // Verificar si hay componentes de hora en la fecha original
-    if (typeof dateValue === 'string' && dateValue.includes(':')) {
-        const hour = date.getHours().toString().padStart(2, '0');
-        const minute = date.getMinutes().toString().padStart(2, '0');
-        formatted = `${day}/${month}/${year} ${hour}:${minute}`;
-    } else if (typeof dateValue === 'number' || (date.getHours() !== 0 || date.getMinutes() !== 0)) {
-        // Si es un número de Excel (que puede incluir tiempo) o si tiene hora/minuto no cero
-        const hour = date.getHours().toString().padStart(2, '0');
-        const minute = date.getMinutes().toString().padStart(2, '0');
-        // Solo agregar hora si no es medianoche (00:00)
-        if (hour !== '00' || minute !== '00') {
-            formatted = `${day}/${month}/${year} ${hour}:${minute}`;
-        }
-    }
-    
-    console.log('Fecha final formateada:', formatted);
+    console.log('Fecha final formateada (solo fecha):', formatted);
     return formatted;
 }
 
@@ -2647,14 +3095,17 @@ function isDefectsCSV(data) {
 function updateDashboardWithCSVData(data, type) {
     if (type === 'details') {
         // Actualizar detalles de pruebas
-        testData.testDetails = data.map(row => ({
-            id: row.ID_Prueba || '',
-            name: row.Nombre_Prueba || '',
-            escenario: row.Escenario || '',
-            status: mapStatus(row.Estado || ''),
-            duration: row.Duracion_Minutos ? row.Duracion_Minutos + ' min' : '-',
-            executor: row.Ejecutor || ''
-        }));
+        testData.testDetails = data.map(row => {
+            console.log('Fecha original del Excel:', row.dia_ejecutado, typeof row.dia_ejecutado);
+            return {
+                id: row.ID_Prueba || '',
+                name: row.Nombre_Prueba || '',
+                escenario: row.Escenario || '',
+                status: mapStatus(row.Estado || ''),
+                dia_ejecutado: row.dia_ejecutado || '',
+                executor: row.Ejecutor || ''
+            };
+        });
         
         // Recalcular resumen basado en los detalles
         updateSummaryFromDetails();
@@ -2705,14 +3156,17 @@ function updateDashboardWithCSVData(data, type) {
 function updateDashboardWithExcelData(data, type) {
     switch (type) {
         case 'details':
-            testData.testDetails = data.map(row => ({
-                id: row.ID_Prueba || '',
-                name: row.Nombre_Prueba || '',
-                escenario: row.Escenario || '',
-                status: mapStatus(row.Estado || ''),
-                duration: row.Duracion_Minutos ? row.Duracion_Minutos + ' min' : '-',
-                executor: row.Ejecutor || ''
-            }));
+            testData.testDetails = data.map(row => {
+                console.log('Fecha Excel (updateDashboardWithExcelData):', row.dia_ejecutado, typeof row.dia_ejecutado);
+                return {
+                    id: row.ID_Prueba || '',
+                    name: row.Nombre_Prueba || '',
+                    escenario: row.Escenario || '',
+                    status: mapStatus(row.Estado || ''),
+                    dia_ejecutado: row.dia_ejecutado || '',
+                    executor: row.Ejecutor || ''
+                };
+            });
             updateSummaryFromDetails();
             populateTestTable();
             break;

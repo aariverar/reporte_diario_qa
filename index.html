@@ -298,10 +298,15 @@
                             </select>
                             <select id="statusFilter">
                                 <option value="">Todos los estados</option>
-                                <option value="Abierto">Abierto</option>
-                                <option value="En Progreso">En Progreso</option>
-                                <option value="Resuelto">Resuelto</option>
-                                <option value="Cerrado">Cerrado</option>
+                                <option value="Open">Open</option>
+                                <option value="Reject">Reject</option>
+                                <option value="Assigned">Assigned</option>
+                                <option value="Under Review">Under Review</option>
+                                <option value="In Progress DEV">In Progress DEV</option>
+                                <option value="Resolved">Resolved</option>
+                                <option value="ReTesting">ReTesting</option>
+                                <option value="ReOpened">ReOpened</option>
+                                <option value="Closed">Closed</option>
                             </select>
                         </div>
                         <button class="btn-export" onclick="exportDefects()">
@@ -368,7 +373,17 @@
                     <div class="table-controls">
                         <div class="search-box">
                             <i class="fas fa-search"></i>
-                            <input type="text" placeholder="Buscar pruebas..." id="searchInput">
+                            <input type="text" placeholder="Buscar por ID, nombre, escenario, estado o ejecutor..." id="searchInput">
+                        </div>
+                        <div class="filter-controls">
+                            <select id="testStatusFilter">
+                                <option value="">Todos los estados</option>
+                                <option value="planned">Planificada</option>
+                                <option value="success">Exitosa</option>
+                                <option value="failure">Fallida</option>
+                                <option value="pending">Pendiente</option>
+                                <option value="blocked">Bloqueada</option>
+                            </select>
                         </div>
                         <button class="btn-export">
                             <i class="fas fa-download"></i>
@@ -384,7 +399,7 @@
                                 <th>Nombre de la Prueba</th>
                                 <th>Escenario</th>
                                 <th>Estado</th>
-                                <th>Duración</th>
+                                <th>Fecha Ejecución</th>
                                 <th>Ejecutor</th>
                             </tr>
                         </thead>

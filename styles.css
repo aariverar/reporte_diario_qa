@@ -799,6 +799,166 @@ body::before {
     border-color: var(--primary-color);
 }
 
+/* Estilos para resaltado de búsqueda */
+.test-table mark {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+    padding: 1px 3px !important;
+    border-radius: 3px !important;
+    font-weight: 600 !important;
+}
+
+/* Indicador de resultados de búsqueda */
+.search-results-info {
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    background: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(40, 167, 69, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 500;
+}
+
+.search-results-info i {
+    font-size: 0.7rem;
+}
+
+/* Información de filtros de defectos */
+.filter-results-info {
+    padding: 0.75rem 1rem;
+    margin: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    font-weight: 500;
+}
+
+.filter-results-info.with-results {
+    background: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(40, 167, 69, 0.2);
+    color: #16a34a;
+}
+
+.filter-results-info.no-results {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #dc2626;
+}
+
+.filter-results-info i {
+    font-size: 0.875rem;
+}
+
+/* Mensajes de estado vacío y sin resultados */
+.no-data-message,
+.no-results-message {
+    text-align: center;
+    vertical-align: middle;
+    padding: 3rem 2rem;
+    background: rgba(248, 249, 250, 0.8);
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+}
+
+.no-data-content,
+.no-results-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    color: #6c757d;
+}
+
+.no-data-content i,
+.no-results-content i {
+    font-size: 3rem;
+    color: #adb5bd;
+    margin-bottom: 0.5rem;
+}
+
+.no-data-content p,
+.no-results-content p {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.no-data-content small,
+.no-results-content small {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+.btn-clear-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: #666;
+    transition: all 0.2s ease;
+}
+
+.btn-clear-filters:hover {
+    background: white;
+    border-color: rgba(0, 0, 0, 0.2);
+    color: #333;
+}
+
+.btn-clear-filters i {
+    font-size: 0.7rem;
+}
+
+/* Mensajes de tabla vacía */
+.no-data-message,
+.no-results-message {
+    text-align: center;
+    padding: 2rem 1rem;
+    background: rgba(248, 250, 252, 0.8);
+}
+
+.no-data-content,
+.no-results-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.no-data-content i,
+.no-results-content i {
+    font-size: 2rem;
+    color: #cbd5e1;
+}
+
+.no-data-content p,
+.no-results-content p {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.no-data-content small,
+.no-results-content small {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
 .btn-export {
     display: flex;
     align-items: center;
@@ -1204,7 +1364,22 @@ body::before {
     color: #dc2626;
 }
 
-.defect-status.in-progress {
+.defect-status.reject {
+    background: rgba(127, 29, 29, 0.1);
+    color: #7f1d1d;
+}
+
+.defect-status.assigned {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+.defect-status.under-review {
+    background: rgba(168, 85, 247, 0.1);
+    color: #7c3aed;
+}
+
+.defect-status.in-progress-dev {
     background: rgba(245, 158, 11, 0.1);
     color: #d97706;
 }
@@ -1212,6 +1387,16 @@ body::before {
 .defect-status.resolved {
     background: rgba(34, 197, 94, 0.1);
     color: #16a34a;
+}
+
+.defect-status.retesting {
+    background: rgba(6, 182, 212, 0.1);
+    color: #0891b2;
+}
+
+.defect-status.reopened {
+    background: rgba(236, 72, 153, 0.1);
+    color: #be185d;
 }
 
 .defect-status.closed {
