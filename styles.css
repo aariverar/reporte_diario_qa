@@ -1330,6 +1330,13 @@ body::before {
     background: rgba(59, 130, 246, 0.05);
 }
 
+/* Centrar la columna CP Impactados (5ta columna) */
+.defects-table th:nth-child(5),
+.defects-table td:nth-child(5) {
+    text-align: center;
+    font-weight: bold;
+}
+
 .defect-severity {
     display: inline-flex;
     align-items: center;

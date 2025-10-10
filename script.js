@@ -1254,8 +1254,11 @@ function highlightSearchTerm(text, searchTerm) {
         return text;
     }
     
+    // Convertir a string si no lo es
+    const textStr = String(text || '');
+    
     const searchRegex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    return text.replace(searchRegex, '<mark style="background-color: #fff3cd; color: #856404; padding: 1px 2px; border-radius: 2px;">$1</mark>');
+    return textStr.replace(searchRegex, '<mark style="background-color: #fff3cd; color: #856404; padding: 1px 2px; border-radius: 2px;">$1</mark>');
 }
 
 // Poblar tabla de detalles de pruebas con paginación mejorada
@@ -1704,14 +1707,14 @@ function populateDefectsTable() {
         const highlightedId = highlightSearchTerm(defect.id, currentSearchTerm);
         const highlightedTitle = highlightSearchTerm(defect.title, currentSearchTerm);
         const highlightedAssignee = highlightSearchTerm(defect.assignee, currentSearchTerm);
-        const highlightedEscenario = highlightSearchTerm(defect.escenario, currentSearchTerm);
+        const highlightedCpImpactados = highlightSearchTerm(String(defect.cp_impactados || ''), currentSearchTerm);
         
         row.innerHTML = `
             <td><strong>${highlightedId}</strong></td>
             <td>${highlightedTitle}</td>
             <td><span class="defect-severity ${severityClass}">${defect.severity}</span></td>
             <td><span class="defect-status ${statusClass}">${defect.status}</span></td>
-            <td>${highlightedEscenario}</td>
+            <td>${highlightedCpImpactados}</td>
             <td>${highlightedAssignee}</td>
             <td>${formatDate(defect.dateFound)}</td>
             <td><span class="days-open ${daysOpenClass}">${daysOpen} días</span></td>
@@ -1888,7 +1891,7 @@ function filterDefects() {
             const matchesSearch = defect.title.toLowerCase().includes(searchTerm) ||
                                 defect.id.toLowerCase().includes(searchTerm) ||
                                 defect.assignee.toLowerCase().includes(searchTerm) ||
-                                defect.escenario.toLowerCase().includes(searchTerm);
+                                (defect.cp_impactados || '').toLowerCase().includes(searchTerm);
             const matchesSeverity = !severityFilter || defect.severity === severityFilter;
             const matchesStatus = !statusFilter || defect.status === statusFilter;
             
@@ -2834,7 +2837,7 @@ function transformMultiProjectData(data) {
                 description: d.descripcion,
                 severity: d.severidad,
                 status: d.estado,
-                escenario: d.escenario,
+                cp_impactados: d.cp_impactados,
                 assignee: d.asignado_a,
                 reporter: d.reportado_por,
                 dateFound: formatDateForDashboard(d.fecha_encontrado),
@@ -3143,7 +3146,7 @@ function updateDashboardWithCSVData(data, type) {
                 description: row.descripcion || '',
                 severity: row.severidad || '',
                 status: row.estado || '',
-                escenario: row.escenario || '',
+                cp_impactados: row.cp_impactados || '',
                 assignee: row.asignado_a || '',
                 reporter: row.reportado_por || '',
                 dateFound: formatDateForDashboard(row.fecha_encontrado || ''),
@@ -3222,7 +3225,7 @@ function updateDashboardWithExcelData(data, type) {
                     description: row.descripcion || '',
                     severity: row.severidad || '',
                     status: row.estado || '',
-                    escenario: row.escenario || '',
+                    cp_impactados: row.cp_impactados || '',
                     assignee: row.asignado_a || '',
                     reporter: row.reportado_por || '',
                     dateFound: formatDateForDashboard(row.fecha_encontrado || ''),
@@ -4898,44 +4901,205 @@ document.addEventListener('DOMContentLoaded', function() {
 let currentExcelData = null;
 
 // Función para generar enlace compartible
-function generateShareableLink() {
+async function generateShareableLink() {
     if (!currentExcelData) {
         alert('No hay datos cargados para compartir. Por favor, carga un archivo Excel primero.');
         return;
     }
     
     try {
-        // Comprimir y codificar los datos
-        const compressedData = compressData(currentExcelData);
         const baseUrl = window.location.origin + window.location.pathname;
-        const shareableUrl = `${baseUrl}?data=${encodeURIComponent(compressedData)}`;
+        
+        // Opción 1: Intentar crear enlace corto local
+        const shortId = storeShortLink(currentExcelData);
+        let shareableUrl;
+        let displayUrl;
+        let isShortLink = false;
+        
+        if (shortId) {
+            // Crear enlace corto usando ID local
+            shareableUrl = `${baseUrl}?id=${shortId}`;
+            displayUrl = shareableUrl;
+            isShortLink = true;
+            console.log('✅ Enlace corto generado con ID:', shortId);
+        } else {
+            // Fallback: usar método original comprimido
+            const compressedData = compressData(currentExcelData);
+            shareableUrl = `${baseUrl}?data=${encodeURIComponent(compressedData)}`;
+            displayUrl = shortenUrl(shareableUrl);
+            console.log('⚠️ Usando enlace largo como fallback');
+        }
+        
+        console.log('📊 Enlace generado - Longitud:', shareableUrl.length);
         
         // Mostrar el modal con el enlace
         document.getElementById('shareableLink').value = shareableUrl;
         
-        // Mostrar versión acortada en el display
-        const shortUrl = shortenUrl(shareableUrl);
-        document.getElementById('shareableLinkDisplay').textContent = shortUrl;
+        // Mostrar versión apropiada en el display
+        const displayElement = document.getElementById('shareableLinkDisplay');
+        displayElement.textContent = displayUrl;
+        
+        // Actualizar información sobre el enlace
+        const urlNote = document.querySelector('.url-note');
+        if (urlNote) {
+            if (isShortLink) {
+                urlNote.textContent = `(enlace corto - ${shareableUrl.length} caracteres)`;
+                urlNote.style.color = '#16a34a'; // Verde para indicar éxito
+            } else {
+                urlNote.textContent = `(enlace largo acortado para visualización - ${shareableUrl.length} caracteres)`;
+                urlNote.style.color = '#ea580c'; // Naranja para advertencia
+            }
+        }
+        
+        // Opción 2: Intentar acortar con servicio externo si el enlace sigue siendo muy largo
+        if (!isShortLink && shareableUrl.length > 2000) {
+            try {
+                const externalShortUrl = await generateShortUrl(shareableUrl);
+                if (externalShortUrl !== shareableUrl && externalShortUrl.length < shareableUrl.length) {
+                    document.getElementById('shareableLink').value = externalShortUrl;
+                    displayElement.textContent = externalShortUrl;
+                    
+                    if (urlNote) {
+                        urlNote.textContent = `(enlace acortado externamente - ${externalShortUrl.length} caracteres)`;
+                        urlNote.style.color = '#16a34a';
+                    }
+                    
+                    console.log('✅ Enlace acortado externamente:', externalShortUrl);
+                }
+            } catch (error) {
+                console.log('No se pudo acortar externamente:', error.message);
+            }
+        }
         
         document.getElementById('shareModal').style.display = 'flex';
         
-        console.log('✅ Enlace compartible generado');
     } catch (error) {
         console.error('❌ Error al generar enlace compartible:', error);
         alert('Error al generar el enlace compartible. Los datos pueden ser demasiado grandes.');
     }
 }
 
-// Función para acortar URLs largas
+// Función para acortar URLs largas para visualización
 function shortenUrl(url) {
-    const maxLength = 60;
-    if (url.length <= maxLength) {
+    const maxDisplayLength = 60;
+    
+    if (url.length <= maxDisplayLength) {
         return url;
     }
     
-    const start = url.substring(0, 30);
-    const end = url.substring(url.length - 25);
-    return `${start}...${end}`;
+    // Para URLs muy largas, mostrar solo el dominio y una indicación de datos
+    const urlObj = new URL(url);
+    const baseUrl = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+    
+    if (urlObj.search) {
+        // Si hay parámetros, mostrar una versión muy simplificada
+        return `${baseUrl}?data=[${Math.round(url.length / 1000)}KB]`;
+    }
+    
+    // Si la URL base es muy larga, acortarla también
+    if (baseUrl.length > maxDisplayLength) {
+        const start = baseUrl.substring(0, 30);
+        const end = baseUrl.substring(baseUrl.length - 25);
+        return `${start}...${end}`;
+    }
+    
+    return baseUrl;
+}
+
+// Nueva función para generar enlace corto con servicio externo
+async function generateShortUrl(longUrl) {
+    try {
+        // Intentar usar is.gd como servicio de acortado
+        const response = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`);
+        
+        if (response.ok) {
+            const shortUrl = await response.text();
+            if (shortUrl && !shortUrl.includes('Error')) {
+                return shortUrl.trim();
+            }
+        }
+    } catch (error) {
+        console.log('No se pudo usar servicio de acortado externo:', error.message);
+    }
+    
+    // Fallback: usar acortado local
+    return shortenUrl(longUrl);
+}
+
+// Sistema de enlaces cortos locales
+const SHORT_LINKS_STORAGE_KEY = 'dashboardShortLinks';
+
+// Función para almacenar enlace largo y generar ID corto
+function storeShortLink(data) {
+    try {
+        // Generar ID único corto
+        const shortId = createShortHash(data);
+        
+        // Obtener enlaces almacenados
+        const storedLinks = JSON.parse(localStorage.getItem(SHORT_LINKS_STORAGE_KEY) || '{}');
+        
+        // Almacenar el enlace con timestamp para limpieza automática
+        storedLinks[shortId] = {
+            data: data,
+            created: Date.now(),
+            accessed: Date.now()
+        };
+        
+        // Limpiar enlaces antiguos (más de 30 días)
+        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+        Object.keys(storedLinks).forEach(key => {
+            if (storedLinks[key].accessed < thirtyDaysAgo) {
+                delete storedLinks[key];
+            }
+        });
+        
+        // Guardar en localStorage
+        localStorage.setItem(SHORT_LINKS_STORAGE_KEY, JSON.stringify(storedLinks));
+        
+        return shortId;
+    } catch (error) {
+        console.error('Error storing short link:', error);
+        return null;
+    }
+}
+
+// Función para recuperar datos desde ID corto
+function getDataFromShortId(shortId) {
+    try {
+        const storedLinks = JSON.parse(localStorage.getItem(SHORT_LINKS_STORAGE_KEY) || '{}');
+        
+        if (storedLinks[shortId]) {
+            // Actualizar timestamp de acceso
+            storedLinks[shortId].accessed = Date.now();
+            localStorage.setItem(SHORT_LINKS_STORAGE_KEY, JSON.stringify(storedLinks));
+            
+            return storedLinks[shortId].data;
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Error retrieving short link data:', error);
+        return null;
+    }
+}
+
+// Función para crear hash corto del enlace
+function createShortHash(data) {
+    // Crear un hash simple del contenido
+    let hash = 0;
+    const str = JSON.stringify(data);
+    
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convertir a 32-bit integer
+    }
+    
+    // Convertir a base36 para hacer más corto y añadir timestamp
+    const shortHash = Math.abs(hash).toString(36);
+    const timeStamp = Date.now().toString(36).slice(-4); // Últimos 4 chars del timestamp
+    
+    return (shortHash + timeStamp).substring(0, 8); // Usar solo 8 caracteres totales
 }
 
 // Función para copiar el enlace al portapapeles
@@ -5002,10 +5166,46 @@ function compressData(data) {
 // Función para descomprimir datos
 function decompressData(compressedData) {
     try {
-        const jsonString = decodeURIComponent(atob(compressedData));
-        return JSON.parse(jsonString);
+        console.log('🔧 Iniciando descompresión de datos...');
+        
+        // Validar que el parámetro no esté vacío
+        if (!compressedData || compressedData.trim() === '') {
+            console.error('❌ Datos comprimidos vacíos');
+            return null;
+        }
+        
+        // Intentar decodificar base64
+        let decodedData;
+        try {
+            decodedData = atob(compressedData);
+        } catch (base64Error) {
+            console.error('❌ Error en decodificación base64:', base64Error);
+            return null;
+        }
+        
+        // Intentar decodificar URI
+        let jsonString;
+        try {
+            jsonString = decodeURIComponent(decodedData);
+        } catch (uriError) {
+            console.error('❌ Error en decodificación URI:', uriError);
+            return null;
+        }
+        
+        // Intentar parsear JSON
+        let parsedData;
+        try {
+            parsedData = JSON.parse(jsonString);
+        } catch (jsonError) {
+            console.error('❌ Error en parseo JSON:', jsonError);
+            return null;
+        }
+        
+        console.log('✅ Datos descomprimidos exitosamente');
+        return parsedData;
+        
     } catch (error) {
-        console.error('❌ Error al descomprimir datos:', error);
+        console.error('❌ Error general al descomprimir datos:', error);
         return null;
     }
 }
@@ -5014,32 +5214,82 @@ function decompressData(compressedData) {
 function loadDataFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
     const dataParam = urlParams.get('data');
+    const idParam = urlParams.get('id');
     
-    if (dataParam) {
-        console.log('🔄 Cargando datos desde URL...');
-        const decompressedData = decompressData(dataParam);
+    // Primero intentar cargar desde ID corto (nuevo sistema)
+    if (idParam) {
+        console.log('🔄 Cargando datos desde ID corto:', idParam);
         
-        if (decompressedData) {
-            // Actualizar dashboard con los datos cargados
-            updateDashboardWithTransformedData(decompressedData);
-            
-            // Mostrar mensaje de información
-            showLoadedFromLinkMessage();
-            
-            console.log('✅ Datos cargados desde enlace compartido');
+        const data = getDataFromShortId(idParam);
+        
+        if (data) {
+            try {
+                // Validar que los datos tengan la estructura esperada
+                if (data.projectInfo && data.summary) {
+                    // Actualizar dashboard con los datos cargados
+                    updateDashboardWithTransformedData(data);
+                    
+                    // Mostrar mensaje de información
+                    showLoadedFromLinkMessage('ID corto');
+                    
+                    console.log('✅ Datos cargados desde ID corto');
+                    console.log('📊 Proyecto:', data.projectInfo.name);
+                } else {
+                    console.error('❌ Los datos del ID corto no tienen la estructura esperada');
+                    showErrorMessage('Los datos del enlace no son válidos o están corruptos.');
+                }
+            } catch (error) {
+                console.error('❌ Error procesando datos del ID corto:', error);
+                showErrorMessage('Error al procesar los datos del enlace compartido.');
+            }
         } else {
-            console.error('❌ No se pudieron descomprimir los datos del enlace');
+            console.error('❌ No se encontraron datos para el ID corto:', idParam);
+            showErrorMessage('El enlace ha expirado o no es válido. Los enlaces cortos tienen una duración limitada.');
+        }
+        return;
+    }
+    
+    // Fallback al sistema antiguo (parámetro data)
+    if (dataParam) {
+        console.log('🔄 Cargando datos desde URL (sistema legacy)...');
+        console.log('📏 Longitud del parámetro data:', dataParam.length);
+        
+        try {
+            const decompressedData = decompressData(dataParam);
+            
+            if (decompressedData) {
+                // Validar que los datos tengan la estructura esperada
+                if (decompressedData.projectInfo && decompressedData.summary) {
+                    // Actualizar dashboard con los datos cargados
+                    updateDashboardWithTransformedData(decompressedData);
+                    
+                    // Mostrar mensaje de información
+                    showLoadedFromLinkMessage('enlace comprimido');
+                    
+                    console.log('✅ Datos cargados desde enlace compartido (legacy)');
+                    console.log('📊 Proyecto:', decompressedData.projectInfo.name);
+                } else {
+                    console.error('❌ Los datos no tienen la estructura esperada');
+                    showErrorMessage('Los datos del enlace no son válidos o están corruptos.');
+                }
+            } else {
+                console.error('❌ No se pudieron descomprimir los datos del enlace');
+                showErrorMessage('No se pudo decodificar el enlace. El enlace puede estar incompleto o dañado.');
+            }
+        } catch (error) {
+            console.error('❌ Error procesando datos del enlace:', error);
+            showErrorMessage('Error al procesar los datos del enlace compartido.');
         }
     }
 }
 
 // Función para mostrar mensaje cuando se carga desde enlace
-function showLoadedFromLinkMessage() {
+function showLoadedFromLinkMessage(linkType = 'enlace compartido') {
     const message = document.createElement('div');
     message.className = 'loaded-from-link-message';
     message.innerHTML = `
         <i class="fas fa-info-circle"></i>
-        Datos cargados desde enlace compartido
+        Datos cargados desde ${linkType}
         <button onclick="this.parentElement.remove()" style="background: none; border: none; color: white; margin-left: 10px; cursor: pointer;">
             <i class="fas fa-times"></i>
         </button>
@@ -5070,6 +5320,46 @@ function showLoadedFromLinkMessage() {
             message.remove();
         }
     }, 5000);
+}
+
+// Función para mostrar mensajes de error
+function showErrorMessage(errorText) {
+    const message = document.createElement('div');
+    message.className = 'error-message';
+    message.innerHTML = `
+        <i class="fas fa-exclamation-triangle"></i>
+        ${errorText}
+        <button onclick="this.parentElement.remove()" style="background: none; border: none; color: white; margin-left: 10px; cursor: pointer;">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    message.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background: #dc2626;
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 500;
+        animation: slideInRight 0.3s ease-out;
+        max-width: 400px;
+    `;
+    
+    document.body.appendChild(message);
+    
+    // Auto remover después de 8 segundos para errores
+    setTimeout(() => {
+        if (message.parentElement) {
+            message.remove();
+        }
+    }, 8000);
 }
 
 // Agregar animación CSS para el mensaje
