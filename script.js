@@ -26,15 +26,35 @@ const testData = {
         // Total: 150 pruebas planificadas originalmente
     },
     trend: [
-        { date: '2024-09-01', planned: 150, successful: 0, failed: 0, pending: 0, blocked: 0 },   // Día 1: Todo planificado
-        { date: '2024-09-02', planned: 130, successful: 15, failed: 3, pending: 2, blocked: 0 },  // Día 2: Empezando
-        { date: '2024-09-03', planned: 108, successful: 28, failed: 6, pending: 6, blocked: 2 },  // Día 3: Progresando, 2 bloqueadas
-        { date: '2024-09-04', planned: 88, successful: 42, failed: 8, pending: 10, blocked: 2 },  // Día 4: Avanzando
-        { date: '2024-09-05', planned: 72, successful: 55, failed: 12, pending: 8, blocked: 3 },  // Día 5: Más progreso, 1 nueva bloqueada
-        { date: '2024-09-06', planned: 58, successful: 68, failed: 14, pending: 8, blocked: 2 },  // Día 6: Continuando, desbloqueada 1
-        { date: '2024-09-07', planned: 50, successful: 75, failed: 15, pending: 8, blocked: 2 },  // Día 7: Más avance
-        { date: '2024-09-08', planned: 45, successful: 80, failed: 15, pending: 8, blocked: 2 },  // Día 8: Estado actual
-        { date: '2024-09-09', planned: 45, successful: 85, failed: 15, pending: 3, blocked: 2 },  // Día 9: Hoy
+        { date: '01/09/2024', planned: 150, successful: 0, failed: 0, pending: 0, blocked: 0 },   // Día 1: Todo planificado
+        { date: '02/09/2024', planned: 130, successful: 15, failed: 3, pending: 2, blocked: 0 },  // Día 2: Empezando
+        { date: '03/09/2024', planned: 108, successful: 28, failed: 6, pending: 6, blocked: 2 },  // Día 3: Progresando, 2 bloqueadas
+        { date: '04/09/2024', planned: 88, successful: 42, failed: 8, pending: 10, blocked: 2 },  // Día 4: Avanzando
+        { date: '05/09/2024', planned: 72, successful: 55, failed: 12, pending: 8, blocked: 3 },  // Día 5: Más progreso, 1 nueva bloqueada
+        { date: '06/09/2024', planned: 58, successful: 68, failed: 14, pending: 8, blocked: 2 },  // Día 6: Continuando, desbloqueada 1
+        { date: '07/09/2024', planned: 50, successful: 75, failed: 15, pending: 8, blocked: 2 },  // Día 7: Más avance
+        { date: '08/09/2024', planned: 45, successful: 80, failed: 15, pending: 8, blocked: 2 },  // Día 8: Estado actual
+        { date: '09/09/2024', planned: 45, successful: 85, failed: 15, pending: 3, blocked: 2 },  // Día 9
+        { date: '10/09/2024', planned: 40, successful: 90, failed: 16, pending: 2, blocked: 2 },  // Día 10
+        { date: '11/09/2024', planned: 35, successful: 95, failed: 16, pending: 2, blocked: 2 },  // Día 11
+        { date: '12/09/2024', planned: 30, successful: 100, failed: 17, pending: 1, blocked: 2 }, // Día 12
+        { date: '13/09/2024', planned: 25, successful: 105, failed: 17, pending: 1, blocked: 2 }, // Día 13
+        { date: '14/09/2024', planned: 20, successful: 110, failed: 18, pending: 0, blocked: 2 }, // Día 14
+        { date: '15/09/2024', planned: 15, successful: 115, failed: 18, pending: 0, blocked: 2 }, // Día 15
+        { date: '01/10/2024', planned: 12, successful: 118, failed: 18, pending: 0, blocked: 2 }, // Octubre día 1
+        { date: '02/10/2024', planned: 10, successful: 120, failed: 18, pending: 0, blocked: 2 }, // Octubre día 2
+        { date: '03/10/2024', planned: 8, successful: 122, failed: 18, pending: 0, blocked: 2 },  // Octubre día 3
+        { date: '04/10/2024', planned: 6, successful: 124, failed: 18, pending: 0, blocked: 2 },  // Octubre día 4
+        { date: '05/10/2024', planned: 4, successful: 126, failed: 18, pending: 0, blocked: 2 },  // Octubre día 5
+        { date: '06/10/2024', planned: 2, successful: 128, failed: 18, pending: 0, blocked: 2 },  // Octubre día 6
+        { date: '07/10/2024', planned: 1, successful: 129, failed: 18, pending: 0, blocked: 2 },  // Octubre día 7
+        { date: '08/10/2024', planned: 0, successful: 130, failed: 18, pending: 0, blocked: 2 },  // Octubre día 8
+        { date: '09/10/2024', planned: 0, successful: 132, failed: 18, pending: 0, blocked: 0 },  // Octubre día 9
+        { date: '10/10/2024', planned: 0, successful: 134, failed: 16, pending: 0, blocked: 0 },  // Octubre día 10
+        { date: '11/10/2024', planned: 0, successful: 136, failed: 14, pending: 0, blocked: 0 },  // Octubre día 11
+        { date: '12/10/2024', planned: 0, successful: 138, failed: 12, pending: 0, blocked: 0 },  // Octubre día 12
+        { date: '13/10/2024', planned: 0, successful: 140, failed: 10, pending: 0, blocked: 0 },  // Octubre día 13
+        { date: '14/10/2024', planned: 0, successful: 142, failed: 8, pending: 0, blocked: 0 },   // Octubre día 14 (hoy)
     ],
     categories: [
         { date: '2024-09-28', planned: 128, successful: 102, failed: 11, pending: 5 },
@@ -122,8 +142,8 @@ function calculateProjectProgress() {
         return isNaN(date.getTime()) ? null : date;
     }
     
-    // Fecha objetivo: 13/10/2025
-    const fechaObjetivo = new Date(2025, 9, 13); // 13/10/2025
+    // Fecha objetivo: fecha actual del sistema
+    const fechaObjetivo = new Date(); // CORRECCIÓN: Usar fecha actual del sistema
     console.log(`🗓️ CÁLCULO % REAL - Hasta fecha: ${fechaObjetivo.toISOString().split('T')[0]} (${fechaObjetivo.toLocaleDateString('es-ES', { weekday: 'long' })})`);
     
     // Ordenar tendencia por fecha
@@ -159,7 +179,7 @@ function calculateProjectProgress() {
         const diaSemana = dayDate.toLocaleDateString('es-ES', { weekday: 'long' });
         
         console.log(`  Fila ${index + 1}: ${dayData.date} (${diaSemana}) -> Exitosos: ${exitososDelDia}, Fallidos: ${fallidosDelDia}, Total: ${ejecutadosDelDia}`);
-        console.log(`    Comparación: ${fechaFormateada} <= 2025-10-13 = ${isIncluded} ${isIncluded ? '✅ INCLUIR' : '❌ EXCLUIR'}`);
+        console.log(`    Comparación: ${fechaFormateada} <= ${fechaObjetivo.toISOString().split('T')[0]} = ${isIncluded} ${isIncluded ? '✅ INCLUIR' : '❌ EXCLUIR'}`);
         
         if (isIncluded) {
             casosEjecutadosAcumulados += ejecutadosDelDia;
@@ -175,16 +195,12 @@ function calculateProjectProgress() {
     const realProgress = parseFloat(((casosEjecutadosAcumulados / totalCasosProyecto) * 100).toFixed(1));
     
     console.log(`📊 FÓRMULA EXCEL % REAL: (SUMA($D$2:D_actual)+SUMA($E$2:E_actual))/SUMA($C$2:$C$20)*100`);
-    console.log(`   • FECHA OBJETIVO: 13/10/2025 (domingo)`);
+    console.log(`   • FECHA OBJETIVO: ${fechaObjetivo.toISOString().split('T')[0]} (${fechaObjetivo.toLocaleDateString('es-ES', { weekday: 'long' })})`);
     console.log(`   • ÚLTIMA FECHA INCLUIDA: ${ultimaFechaIncluida}`);
     console.log(`   • SUMA($D$2:D_actual) + SUMA($E$2:E_actual): ${casosEjecutadosAcumulados} (exitosos + fallidos acumulados)`);
     console.log(`   • SUMA($C$2:$C$20): ${totalCasosProyecto} (total planificadas del proyecto)`);
     console.log(`   • % Real: ${realProgress}% = (${casosEjecutadosAcumulados}/${totalCasosProyecto}) * 100`);
-    console.log(`   • Verificación manual hasta 13/10:`);
-    console.log(`     - Exitosos: 12+19+7+7+19 = 64`);
-    console.log(`     - Fallidos: 0+1+6+1+0 = 8`);
-    console.log(`     - Total ejecutados: 64+8 = 72`);
-    console.log(`     - % Real esperado: (72/220)*100 = ${parseFloat(((72/220)*100).toFixed(1))}%`);
+    console.log(`💡 CÁLCULO DINÁMICO BASADO EN FECHA ACTUAL DEL SISTEMA`);
     
     return realProgress;
 }
@@ -226,7 +242,7 @@ function calculatePlannedProgress() {
     // PASO 2: Calcular SUMA($C$2:C_actual) - Acumulado hasta fecha actual o más cercana
     let sumaPlanificadasAcumulada = 0;
     let ultimaFechaIncluida = null;
-    let fechaObjetivo = new Date(2025, 9, 13); // 13/10/2025 (mes 9 = octubre)
+    let fechaObjetivo = new Date(); // CORRECCIÓN: Usar fecha actual del sistema
     
     console.log(`🎯 BUSCANDO DATOS HASTA: ${fechaObjetivo.toISOString().split('T')[0]} (${fechaObjetivo.toLocaleDateString('es-ES', { weekday: 'long' })})`);
     
@@ -247,22 +263,23 @@ function calculatePlannedProgress() {
         return isNaN(date.getTime()) ? null : date;
     }
     
-    // Buscar la fecha exacta del 13/10/2025 o la más cercana anterior
+    // Buscar la fecha exacta o la más cercana anterior a la fecha actual
     let fechaEncontrada = null;
+    const fechaObjetivoStr = fechaObjetivo.toISOString().split('T')[0];
     trendSorted.forEach((dayData) => {
         const dayDate = parseDateDDMMYYYY(dayData.date);
-        if (dayDate && dayDate.toISOString().split('T')[0] === '2025-10-13') {
+        if (dayDate && dayDate.toISOString().split('T')[0] === fechaObjetivoStr) {
             fechaEncontrada = dayData.date;
             console.log(`🎉 ENCONTRADA FECHA EXACTA: ${dayData.date}`);
         }
     });
     
     if (!fechaEncontrada) {
-        console.log(`⚠️ No se encontró datos para 13/10/2025, buscando fecha más cercana anterior...`);
-        // Buscar la fecha más cercana anterior al 13/10/2025
+        console.log(`⚠️ No se encontró datos para ${fechaObjetivoStr}, buscando fecha más cercana anterior...`);
+        // Buscar la fecha más cercana anterior a la fecha actual
         let fechasCercanas = trendSorted.filter(dayData => {
-            const dayDate = new Date(dayData.date);
-            return dayDate <= fechaObjetivo;
+            const dayDate = parseDateDDMMYYYY(dayData.date);
+            return dayDate && dayDate <= fechaObjetivo;
         });
         if (fechasCercanas.length > 0) {
             fechaEncontrada = fechasCercanas[fechasCercanas.length - 1].date;
@@ -285,7 +302,7 @@ function calculatePlannedProgress() {
         const diaSemana = dayDate.toLocaleDateString('es-ES', { weekday: 'long' });
         
         console.log(`  Fila ${index + 1}: ${dayData.date} (${diaSemana}) -> Planificadas: ${planificadasDelDia}`);
-        console.log(`    Comparación: ${fechaFormateada} <= 2025-10-13 = ${isIncluded} ${isIncluded ? '✅ INCLUIR' : '❌ EXCLUIR'}`);
+        console.log(`    Comparación: ${fechaFormateada} <= ${fechaObjetivoStr} = ${isIncluded} ${isIncluded ? '✅ INCLUIR' : '❌ EXCLUIR'}`);
         
         if (isIncluded) {
             sumaPlanificadasAcumulada += planificadasDelDia;
@@ -302,19 +319,14 @@ function calculatePlannedProgress() {
     const plannedProgress = parseFloat(((sumaPlanificadasAcumulada / totalPlanificadasProyecto) * 100).toFixed(1));
     
     console.log(`� PROGRESO PLANIFICADO (TENDENCIA_HISTORICA):`);
-    console.log(`   • FECHA OBJETIVO: 13/10/2025 (domingo)`);
+    console.log(`   • FECHA OBJETIVO: ${fechaObjetivoStr} (${fechaObjetivo.toLocaleDateString('es-ES', { weekday: 'long' })})`);
     console.log(`   • ÚLTIMA FECHA INCLUIDA: ${ultimaFechaIncluida}`);
     console.log(`   • SUMA($C$2:C_actual) hasta ${ultimaFechaIncluida}: ${sumaPlanificadasAcumulada}`);
     console.log(`   • SUMA($C$2:$C_último) total proyecto: ${totalPlanificadasProyecto}`);
     console.log(`   • % Planificado: ${plannedProgress}% = (${sumaPlanificadasAcumulada}/${totalPlanificadasProyecto}) * 100`);
     console.log(`   • Filas procesadas: ${trendSorted.length}`);
-    console.log(`   • EXPECTATIVA para 13/10/2025: 27.3%`);
     console.log(`   • RESULTADO ACTUAL: ${plannedProgress}%`);
-    console.log(`   • ${plannedProgress === 27.3 ? '✅ COINCIDE' : '❌ NO COINCIDE - Revisar datos de Tendencia_Historica'}`);
-    console.log(`💡 VERIFICACIÓN MANUAL HASTA 13/10/2025:`);
-    console.log(`   • Planificadas acumuladas: 12+12+12+12+12 = 60`);
-    console.log(`   • Total proyecto: 220`);
-    console.log(`   • % Planificado esperado: (60/220)*100 = ${parseFloat(((60/220)*100).toFixed(1))}%`);
+    console.log(`💡 CÁLCULO DINÁMICO BASADO EN FECHA ACTUAL DEL SISTEMA`);
     
     return plannedProgress;
 }
@@ -1829,7 +1841,7 @@ function populateDefectsTable() {
     updateDefectsPaginationControls(totalItems, totalPages);
 }
 
-// Calcular días abierto
+// Calcular días abierto (solo días laborales - lunes a viernes)
 function calculateDaysOpen(dateFound) {
     const today = new Date();
     
@@ -1875,14 +1887,52 @@ function calculateDaysOpen(dateFound) {
         return 0;
     }
     
-    console.log(`Calculando días abiertos: Fecha encontrado=${dateFound}, Fecha parseada=${foundDate.toISOString()}, Hoy=${today.toISOString()}`);
+    // Calcular solo días laborales (lunes a viernes)
+    const businessDays = calculateBusinessDays(foundDate, today);
     
-    const diffTime = Math.abs(today - foundDate);
-    const daysOpen = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    console.log(`Calculando días abiertos laborales: Fecha encontrado=${dateFound}, Fecha parseada=${foundDate.toISOString()}, Hoy=${today.toISOString()}, Días laborales=${businessDays}`);
+    console.log(`💼 SOLO DÍAS LABORALES: Excluyendo sábados y domingos del cálculo`);
     
-    console.log(`Días abiertos calculados: ${daysOpen}`);
+    return businessDays;
+}
+
+// Función auxiliar para calcular días laborales entre dos fechas (excluyendo sábados y domingos)
+function calculateBusinessDays(startDate, endDate) {
+    // Asegurar que las fechas estén en el orden correcto
+    let start = new Date(startDate);
+    let end = new Date(endDate);
     
-    return daysOpen;
+    if (start > end) {
+        [start, end] = [end, start];
+    }
+    
+    // Ajustar fechas a medianoche para contar días completos
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    
+    let businessDays = 0;
+    let currentDate = new Date(start);
+    
+    console.log(`📅 Calculando días laborales desde ${start.toLocaleDateString('es-ES')} hasta ${end.toLocaleDateString('es-ES')}`);
+    
+    while (currentDate <= end) {
+        const dayOfWeek = currentDate.getDay(); // 0=Domingo, 1=Lunes, ..., 6=Sábado
+        const dayName = currentDate.toLocaleDateString('es-ES', { weekday: 'long' });
+        
+        // Solo contar si es día laboral (lunes=1 a viernes=5)
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+            businessDays++;
+            console.log(`  ✅ ${dayName} ${currentDate.toLocaleDateString('es-ES')} - DÍA LABORAL (Total: ${businessDays})`);
+        } else {
+            console.log(`  ❌ ${dayName} ${currentDate.toLocaleDateString('es-ES')} - FIN DE SEMANA (Excluido)`);
+        }
+        
+        // Avanzar al siguiente día
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    console.log(`📊 TOTAL DÍAS LABORALES: ${businessDays}`);
+    return businessDays;
 }
 
 // Obtener clase CSS de severidad
