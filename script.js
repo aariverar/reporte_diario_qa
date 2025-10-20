@@ -2879,6 +2879,7 @@ function calculateSummaryFromDetails(pruebas) {
                 break;
             case 'fallida':
             case 'failed':
+            case 'failure':
                 fallidas++;
                 break;
             case 'pendiente':
@@ -2959,6 +2960,7 @@ function calculateCategoriesFromDetails(pruebas) {
                 break;
             case 'fallida':
             case 'failed':
+            case 'failure':
                 categorias[escenario].fallidas++;
                 break;
             case 'pendiente':
