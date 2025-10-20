@@ -2867,8 +2867,12 @@ function calculateSummaryFromDetails(pruebas) {
     
     // Contar por estado
     pruebas.forEach(prueba => {
-        const estado = prueba.estado?.toLowerCase();
-        switch (estado) {
+        // Aplicar mapStatus para mapear correctamente desde Excel
+        const estadoOriginal = prueba.Estado || prueba.estado || '';
+        const estadoMapeado = mapStatus(estadoOriginal);
+        console.log(`DEBUG: Estado original "${estadoOriginal}" -> mapeado "${estadoMapeado}"`);
+        
+        switch (estadoMapeado.toLowerCase()) {
             case 'exitosa':
             case 'success':
                 exitosas++;
@@ -2944,9 +2948,11 @@ function calculateCategoriesFromDetails(pruebas) {
             };
         }
         
-        // Contar por estado
-        const estado = prueba.estado?.toLowerCase();
-        switch (estado) {
+        // Contar por estado - aplicar mapStatus para mapear correctamente desde Excel
+        const estadoOriginal = prueba.Estado || prueba.estado || '';
+        const estadoMapeado = mapStatus(estadoOriginal);
+        
+        switch (estadoMapeado.toLowerCase()) {
             case 'exitosa':
             case 'success':
                 categorias[escenario].exitosas++;
