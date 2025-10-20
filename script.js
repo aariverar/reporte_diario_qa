@@ -22,16 +22,17 @@ const testData = {
         successful: 85, // Pruebas completadas exitosamente
         failed: 15,     // Pruebas que fallaron
         pending: 3,     // Pruebas en revisión/pendientes
-        blocked: 2      // Pruebas bloqueadas
-        // Total: 150 pruebas planificadas originalmente
+        blocked: 2,     // Pruebas bloqueadas
+        dismissed: 0    // Pruebas desestimadas (se calcula desde Excel)
+        // Total inicial sin dismissed fijo
     },
     trend: [
-        { date: '01/09/2024', planned: 150, successful: 0, failed: 0, pending: 0, blocked: 0 },   // Día 1: Todo planificado
-        { date: '02/09/2024', planned: 130, successful: 15, failed: 3, pending: 2, blocked: 0 },  // Día 2: Empezando
-        { date: '03/09/2024', planned: 108, successful: 28, failed: 6, pending: 6, blocked: 2 },  // Día 3: Progresando, 2 bloqueadas
-        { date: '04/09/2024', planned: 88, successful: 42, failed: 8, pending: 10, blocked: 2 },  // Día 4: Avanzando
-        { date: '05/09/2024', planned: 72, successful: 55, failed: 12, pending: 8, blocked: 3 },  // Día 5: Más progreso, 1 nueva bloqueada
-        { date: '06/09/2024', planned: 58, successful: 68, failed: 14, pending: 8, blocked: 2 },  // Día 6: Continuando, desbloqueada 1
+        { date: '01/09/2024', planned: 150, successful: 0, failed: 0, pending: 0, blocked: 0, dismissed: 0 },   // Día 1: Todo planificado
+        { date: '02/09/2024', planned: 130, successful: 15, failed: 3, pending: 2, blocked: 0, dismissed: 0 },  // Día 2: Empezando
+        { date: '03/09/2024', planned: 108, successful: 28, failed: 6, pending: 6, blocked: 2, dismissed: 0 },  // Día 3: Progresando, 2 bloqueadas
+        { date: '04/09/2024', planned: 88, successful: 42, failed: 8, pending: 10, blocked: 2, dismissed: 0 },  // Día 4: Avanzando
+        { date: '05/09/2024', planned: 72, successful: 55, failed: 12, pending: 8, blocked: 3, dismissed: 0 },  // Día 5: Más progreso, 1 nueva bloqueada
+        { date: '06/09/2024', planned: 58, successful: 68, failed: 14, pending: 8, blocked: 2, dismissed: 0 },  // Día 6: Continuando, desbloqueada 1
         { date: '07/09/2024', planned: 50, successful: 75, failed: 15, pending: 8, blocked: 2 },  // Día 7: Más avance
         { date: '08/09/2024', planned: 45, successful: 80, failed: 15, pending: 8, blocked: 2 },  // Día 8: Estado actual
         { date: '09/09/2024', planned: 45, successful: 85, failed: 15, pending: 3, blocked: 2 },  // Día 9
@@ -103,7 +104,12 @@ const testData = {
         { id: 'T017', name: 'Cross-browser Compatibility', escenario: 'UI Tests', status: 'planned', dia_ejecutado: '', executor: 'Ana García' },
         { id: 'T018', name: 'Memory Leak Testing', escenario: 'Performance', status: 'planned', dia_ejecutado: '', executor: 'Laura Sánchez' },
         { id: 'T019', name: 'SQL Injection Prevention', escenario: 'Security', status: 'blocked', dia_ejecutado: '', executor: 'Carlos López' },
-        { id: 'T020', name: 'File Upload Validation', escenario: 'API Tests', status: 'planned', dia_ejecutado: '', executor: 'José Martín' }
+        { id: 'T020', name: 'File Upload Validation', escenario: 'API Tests', status: 'planned', dia_ejecutado: '', executor: 'José Martín' },
+        { id: 'T021', name: 'Legacy Browser Support', escenario: 'UI Tests', status: 'dismissed', dia_ejecutado: '', executor: 'Ana García' },
+        { id: 'T022', name: 'Obsolete API Endpoints', escenario: 'API Tests', status: 'dismissed', dia_ejecutado: '', executor: 'Carlos López' },
+        { id: 'T023', name: 'Deprecated Features Test', escenario: 'Integration', status: 'dismissed', dia_ejecutado: '', executor: 'María Rodríguez' },
+        { id: 'T024', name: 'Old Version Compatibility', escenario: 'Performance', status: 'dismissed', dia_ejecutado: '', executor: 'Laura Sánchez' },
+        { id: 'T025', name: 'Unused Security Protocols', escenario: 'Security', status: 'dismissed', dia_ejecutado: '', executor: 'José Martín' }
     ]
 };
 
@@ -409,8 +415,9 @@ function initializeDashboard() {
 
     // Calcular el total de pruebas (todos los estados)
     const blockedCount = testData.summary.blocked || 0;
+    const dismissedCount = testData.summary.dismissed || 0;
     const totalTests = testData.summary.planned + testData.summary.successful + 
-                      testData.summary.failed + testData.summary.pending + blockedCount;
+                      testData.summary.failed + testData.summary.pending + blockedCount + dismissedCount;
     
     // Actualizar KPIs con la nueva lógica
     document.getElementById('plannedTests').textContent = testData.summary.planned;
@@ -420,6 +427,18 @@ function initializeDashboard() {
     
     // Actualizar pruebas bloqueadas
     document.getElementById('blockedTests').textContent = blockedCount;
+    
+    // Actualizar pruebas desestimadas
+    document.getElementById('dismissedTests').textContent = dismissedCount;
+    
+    console.log('🎯 ACTUALIZANDO ELEMENTOS DOM:');
+    console.log(`   • Planificadas: ${testData.summary.planned}`);
+    console.log(`   • Exitosas: ${testData.summary.successful}`);
+    console.log(`   • Fallidas: ${testData.summary.failed}`);
+    console.log(`   • Pendientes: ${testData.summary.pending}`);
+    console.log(`   • Bloqueadas: ${blockedCount}`);
+    console.log(`   • DESESTIMADAS: ${dismissedCount}`);
+    console.log(`   • Total: ${totalTests}`);
     
     // Actualizar porcentajes basados en la nueva lógica de progreso
     updateKPIProgressPercentages(totalTests);
@@ -438,6 +457,7 @@ function updateKPIProgressPercentages(totalTests) {
     const failedPercentage = (testData.summary.failed / totalTests) * 100;
     const pendingPercentage = (testData.summary.pending / totalTests) * 100;
     const blockedPercentage = ((testData.summary.blocked || 0) / totalTests) * 100;
+    const dismissedPercentage = ((testData.summary.dismissed || 0) / totalTests) * 100;
     
     // Actualizar elementos en el DOM con la nueva lógica
     updateProgressPercentageElement('plannedTests', plannedPercentage, 'planned');
@@ -445,6 +465,7 @@ function updateKPIProgressPercentages(totalTests) {
     updateProgressPercentageElement('failedTests', failedPercentage, 'failed');
     updateProgressPercentageElement('pendingTests', pendingPercentage, 'pending');
     updateProgressPercentageElement('blockedTests', blockedPercentage, 'blocked');
+    updateProgressPercentageElement('dismissedTests', dismissedPercentage, 'dismissed');
 }
 
 // Función para actualizar un elemento de porcentaje con lógica de progreso
@@ -642,6 +663,13 @@ function createPieChart() {
         chartColors.push('#6B7280');
     }
     
+    // Agregar desestimadas si existe
+    if (testData.summary.dismissed && testData.summary.dismissed > 0) {
+        values.push(testData.summary.dismissed);
+        labels.push('Desestimadas');
+        chartColors.push('#8B8B8B');
+    }
+    
     const data = [{
         values: values,
         labels: labels,
@@ -740,7 +768,17 @@ function createTrendChart() {
         marker: { size: 6 }
     };
 
-    const data = [plannedTrace, successTrace, failureTrace, pendingTrace, blockedTrace];
+    const dismissedTrace = {
+        x: dates,
+        y: trendData.map(d => d.dismissed || 0),
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Desestimadas',
+        line: { color: '#8B8B8B', width: 3 },
+        marker: { size: 6 }
+    };
+
+    const data = [plannedTrace, successTrace, failureTrace, pendingTrace, blockedTrace, dismissedTrace];
 
     const layout = {
         margin: { t: 20, b: 40, l: 40, r: 20 },
@@ -818,7 +856,15 @@ function createCategoryChart() {
         marker: { color: '#6B7280' }
     };
 
-    const data = [plannedTrace, successTrace, failureTrace, pendingTrace, blockedTrace];
+    const dismissedTrace = {
+        x: categories,
+        y: testData.categories.map(c => c.dismissed || 0),
+        type: 'bar',
+        name: 'Desestimadas',
+        marker: { color: '#8B8B8B' }
+    };
+
+    const data = [plannedTrace, successTrace, failureTrace, pendingTrace, blockedTrace, dismissedTrace];
 
     const layout = {
         barmode: 'stack',
@@ -1712,6 +1758,7 @@ function getStatusText(status) {
         case 'pending': return 'Pendiente';
         case 'blocked': return 'Bloqueada';
         case 'planned': return 'Planificada';
+        case 'dismissed': return 'Desestimado';
         default: return status;
     }
 }
@@ -2816,6 +2863,7 @@ function calculateSummaryFromDetails(pruebas) {
     let pendientes = 0;
     let bloqueadas = 0;
     let planificadas = 0;
+    let desestimadas = 0;
     
     // Contar por estado
     pruebas.forEach(prueba => {
@@ -2837,6 +2885,10 @@ function calculateSummaryFromDetails(pruebas) {
             case 'blocked':
                 bloqueadas++;
                 break;
+            case 'desestimado':
+            case 'dismissed':
+                desestimadas++;
+                break;
             case '':
             case undefined:
             case null:
@@ -2848,7 +2900,14 @@ function calculateSummaryFromDetails(pruebas) {
         }
     });
     
-    console.log(`Resumen calculado - Total: ${total}, Planificadas: ${planificadas}, Exitosas: ${exitosas}, Fallidas: ${fallidas}, Pendientes: ${pendientes}, Bloqueadas: ${bloqueadas}`);
+    console.log(`📊 RESUMEN CALCULADO DESDE EXCEL:`);
+    console.log(`   • Total: ${total}`);
+    console.log(`   • Planificadas: ${planificadas}`);
+    console.log(`   • Exitosas: ${exitosas}`);
+    console.log(`   • Fallidas: ${fallidas}`);
+    console.log(`   • Pendientes: ${pendientes}`);
+    console.log(`   • Bloqueadas: ${bloqueadas}`);
+    console.log(`   • DESESTIMADAS: ${desestimadas}`);
     
     return {
         proyecto_id: pruebas[0]?.proyecto_id || '',
@@ -2857,6 +2916,7 @@ function calculateSummaryFromDetails(pruebas) {
         pruebas_fallidas: fallidas,
         pruebas_pendientes: pendientes,
         pruebas_bloqueadas: bloqueadas,
+        pruebas_desestimadas: desestimadas,
         fecha_actualizacion: new Date().toISOString().split('T')[0]
     };
 }
@@ -2878,6 +2938,7 @@ function calculateCategoriesFromDetails(pruebas) {
                 fallidas: 0,
                 pendientes: 0,
                 bloqueadas: 0,
+                desestimadas: 0,
                 prioridad: 'Media',
                 responsable: 'Equipo QA'
             };
@@ -2901,6 +2962,10 @@ function calculateCategoriesFromDetails(pruebas) {
             case 'bloqueada':
             case 'blocked':
                 categorias[escenario].bloqueadas++;
+                break;
+            case 'desestimado':
+            case 'dismissed':
+                categorias[escenario].desestimadas++;
                 break;
             case '':
             case undefined:
@@ -2943,7 +3008,8 @@ function transformMultiProjectData(data) {
             successful: data.resumen.pruebas_exitosas,
             failed: data.resumen.pruebas_fallidas,
             pending: data.resumen.pruebas_pendientes,
-            blocked: data.resumen.pruebas_bloqueadas || 0
+            blocked: data.resumen.pruebas_bloqueadas || 0,
+            dismissed: data.resumen.pruebas_desestimadas || 0
         },
         trend: data.tendencia.map(t => ({
             date: formatDateForDashboard(t.fecha),
@@ -2951,7 +3017,8 @@ function transformMultiProjectData(data) {
             successful: t.exitosas,
             failed: t.fallidas,
             pending: t.pendientes,
-            blocked: t.bloqueadas || 0
+            blocked: t.bloqueadas || 0,
+            dismissed: t.desestimadas || 0
         })),
         categories: data.categorias.map(c => ({
             escenario: c.escenario,
@@ -2960,6 +3027,7 @@ function transformMultiProjectData(data) {
             failed: c.fallidas,
             pending: c.pendientes,
             blocked: c.bloqueadas || 0,
+            dismissed: c.desestimadas || 0,
             priority: c.prioridad,
             responsible: c.responsable
         })),
@@ -3414,11 +3482,13 @@ function mapStatus(status) {
         'Pendiente': 'pending',
         'Bloqueada': 'blocked',
         'Planificada': 'planned',
+        'Desestimado': 'dismissed',
         'Success': 'success',
         'Failed': 'failure',
         'Pending': 'pending',
         'Blocked': 'blocked',
-        'Planned': 'planned'
+        'Planned': 'planned',
+        'Dismissed': 'dismissed'
     };
     
     // Si el estado está vacío o es null/undefined, considerarlo como planificada
@@ -3426,7 +3496,10 @@ function mapStatus(status) {
         return 'planned';
     }
     
-    return statusMap[status] || 'planned';
+    const mappedStatus = statusMap[status] || 'planned';
+    console.log(`🔄 MAPEO ESTADO: "${status}" → "${mappedStatus}"`);
+    
+    return mappedStatus;
 }
 
 // Actualizar resumen basado en detalles
@@ -3436,14 +3509,26 @@ function updateSummaryFromDetails() {
     const pending = testData.testDetails.filter(t => t.status === 'pending').length;
     const blocked = testData.testDetails.filter(t => t.status === 'blocked').length;
     const planned = testData.testDetails.filter(t => t.status === 'planned').length;
+    const dismissed = testData.testDetails.filter(t => t.status === 'dismissed').length;
+    
+    console.log('📊 ACTUALIZANDO SUMMARY DESDE DETALLES:');
+    console.log(`   • Exitosas: ${successful}`);
+    console.log(`   • Fallidas: ${failed}`);
+    console.log(`   • Pendientes: ${pending}`);
+    console.log(`   • Bloqueadas: ${blocked}`);
+    console.log(`   • Planificadas: ${planned}`);
+    console.log(`   • DESESTIMADAS: ${dismissed}`);
     
     testData.summary = {
         planned,
         successful,
         failed,
         pending,
-        blocked
+        blocked,
+        dismissed
     };
+    
+    console.log('🔄 Summary actualizado:', testData.summary);
     
     // Actualizar la información del proyecto con el nuevo progreso calculado
     initializeDashboard();

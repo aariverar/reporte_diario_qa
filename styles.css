@@ -459,8 +459,8 @@ body::before {
 /* KPI Cards */
 .kpi-section {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.875rem;
 }
 
 .kpi-card {
@@ -498,6 +498,10 @@ body::before {
     border-left-color: #6B7280;
 }
 
+.kpi-card.dismissed {
+    border-left-color: #9CA3AF;
+}
+
 .kpi-card.planned {
     border-left-color: var(--warning-color);
 }
@@ -528,6 +532,11 @@ body::before {
 .planned .kpi-icon {
     background: rgba(245, 158, 11, 0.1);
     color: var(--warning-color);
+}
+
+.dismissed .kpi-icon {
+    background: rgba(156, 163, 175, 0.1);
+    color: #9CA3AF;
 }
 
 .kpi-icon i {
@@ -1056,6 +1065,11 @@ body::before {
     color: #9CA3AF;
 }
 
+.status-badge.dismissed {
+    background: rgba(139, 139, 139, 0.1);
+    color: #8B8B8B;
+}
+
 .btn-edit-project {
     background: var(--primary-color);
     color: white;
@@ -1234,8 +1248,8 @@ body::before {
     }
     
     .kpi-section {
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 0.8rem;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.75rem;
     }
     
     .charts-section {
@@ -1266,6 +1280,23 @@ body::before {
 }
 
 @media (max-width: 480px) {
+    .kpi-section {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.6rem;
+    }
+    
+    .kpi-card {
+        padding: 1rem;
+    }
+    
+    .kpi-info h3 {
+        font-size: 0.75rem;
+    }
+    
+    .kpi-value .number {
+        font-size: 1.4rem;
+    }
+    
     .search-box input {
         width: 150px;
     }
