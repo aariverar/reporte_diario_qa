@@ -979,7 +979,7 @@ function updateDefectCycleTimeChart(defectsData) {
                 gridcolor: '#f1f5f9'
             },
             yaxis: {
-                title: 'Tiempo de Ciclo (días)',
+                title: 'Tiempo de Ciclo (días laborales)',
                 gridcolor: '#f1f5f9'
             },
             plot_bgcolor: 'rgba(0,0,0,0)',
@@ -1085,14 +1085,15 @@ function updateDefectCycleTimeChart(defectsData) {
                 return null; // Retornar null para filtrar después
             }
             
-            const cycleTimeDays = Math.ceil((resolvedDate - foundDate) / (1000 * 60 * 60 * 24));
+            const cycleTimeDays = calculateBusinessDays(foundDate, resolvedDate);
             
-            console.log(`📊 Cálculo cycle time para ${defect.id}:`, {
+            console.log(`📊 Cálculo cycle time para ${defect.id} (SOLO DÍAS LABORALES):`, {
                 dateFound: defect.dateFound,
                 dateResolvedUsed: resolvedDateStr,
                 foundDate: foundDate.toISOString(),
                 resolvedDate: resolvedDate.toISOString(),
-                cycleTimeDays: cycleTimeDays
+                cycleTimeDays: cycleTimeDays,
+                note: 'Calculado con días laborales (excluyendo sábados y domingos)'
             });
             
             return {
@@ -1121,7 +1122,7 @@ function updateDefectCycleTimeChart(defectsData) {
                 gridcolor: '#f1f5f9'
             },
             yaxis: {
-                title: 'Tiempo de Ciclo (días)',
+                title: 'Tiempo de Ciclo (días laborales)',
                 gridcolor: '#f1f5f9'
             },
             plot_bgcolor: 'rgba(0,0,0,0)',
@@ -1171,7 +1172,7 @@ function updateDefectCycleTimeChart(defectsData) {
         `ID: ${item.id}<br>` +
         `Título: ${item.title.length > 40 ? item.title.substring(0, 40) + '...' : item.title}<br>` +
         `Severidad: ${item.severity}<br>` +
-        `Cycle Time: ${item.cycleTime} días<br>` +
+        `Cycle Time: ${item.cycleTime} días laborales<br>` +
         `Estado: ${item.cycleTime <= 3 ? '✅ Dentro del objetivo' : '⚠️ Fuera del objetivo'}`
     );
 
@@ -1194,19 +1195,19 @@ function updateDefectCycleTimeChart(defectsData) {
         texttemplate: '%{y}d'
     };
 
-    // Línea horizontal para el objetivo de 3 días
+    // Línea horizontal para el objetivo de 3 días laborales
     const objectiveLine = {
         x: defectIds,
         y: Array(defectIds.length).fill(3),
         type: 'scatter',
         mode: 'lines',
-        name: 'Objetivo (3 días)',
+        name: 'Objetivo (3 días laborales)',
         line: {
             color: '#dc2626',
             width: 2,
             dash: 'dash'
         },
-        hovertemplate: 'Objetivo: 3 días<extra></extra>'
+        hovertemplate: 'Objetivo: 3 días laborales<extra></extra>'
     };
 
     // Calcular estadísticas
@@ -1225,11 +1226,7 @@ function updateDefectCycleTimeChart(defectsData) {
             tickangle: -45,
             type: 'category'
         },
-        yaxis: {
-            title: `Cycle Time (días) - Promedio: ${averageCycleTime.toFixed(1)} | Cumplimiento: ${complianceRate}%`,
-            gridcolor: '#f1f5f9',
-            zeroline: false
-        },
+        
         plot_bgcolor: 'rgba(0,0,0,0)',
         paper_bgcolor: 'rgba(0,0,0,0)',
         font: { family: 'Inter, sans-serif', size: 12, color: '#64748b' },
