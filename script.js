@@ -1860,7 +1860,7 @@ function populateDefectsTable() {
     
     defectsToShow.forEach(defect => {
         const row = document.createElement('tr');
-        const daysOpen = calculateDaysOpen(defect.dateFound);
+        const daysOpen = calculateDaysOpen(defect.dateFound, defect.dateResolved);
         const severityClass = getSeverityClass(defect.severity);
         const statusClass = getStatusClass(defect.status);
         const daysOpenClass = getDaysOpenClass(daysOpen, defect.status);
@@ -1889,58 +1889,77 @@ function populateDefectsTable() {
 }
 
 // Calcular días abierto (solo días laborales - lunes a viernes)
-function calculateDaysOpen(dateFound) {
-    const today = new Date();
+function calculateDaysOpen(dateFound, dateResolved = null) {
+    // Si hay fecha de resolución, calcular entre fecha_encontrado y fecha_resolucion
+    // Si no hay fecha de resolución, calcular desde fecha_encontrado hasta hoy
+    const endDate = dateResolved && dateResolved.trim() !== '' ? parseDate(dateResolved) : new Date();
     
-    // Convertir fecha a objeto Date
-    let foundDate;
-    
-    if (typeof dateFound === 'string') {
-        // Formato DD/MM/AAAA HH:MM
-        if (dateFound.match(/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}$/)) {
-            const [datePart, timePart] = dateFound.split(/\s+/);
-            const [day, month, year] = datePart.split('/').map(Number);
-            const [hour, minute] = timePart.split(':').map(Number);
-            foundDate = new Date(year, month - 1, day, hour, minute);
-        }
-        // Formato DD/MM/AAAA (solo fecha)
-        else if (dateFound.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
-            const [day, month, year] = dateFound.split('/').map(Number);
-            foundDate = new Date(year, month - 1, day);
-        }
-        // Formato YYYY-MM-DD HH:MM
-        else if (dateFound.match(/^\d{4}-\d{1,2}-\d{1,2}\s+\d{1,2}:\d{2}$/)) {
-            const [datePart, timePart] = dateFound.split(/\s+/);
-            const [year, month, day] = datePart.split('-').map(Number);
-            const [hour, minute] = timePart.split(':').map(Number);
-            foundDate = new Date(year, month - 1, day, hour, minute);
-        }
-        // Formato YYYY-MM-DD (solo fecha)
-        else if (dateFound.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
-            const [year, month, day] = dateFound.split('-').map(Number);
-            foundDate = new Date(year, month - 1, day);
-        }
-        else {
-            // Intentar parsear directamente como último recurso
-            foundDate = new Date(dateFound);
-        }
-    } else {
-        // Si ya es un objeto Date o número
-        foundDate = new Date(dateFound);
-    }
+    // Convertir fecha encontrada a objeto Date
+    const foundDate = parseDate(dateFound);
     
     if (isNaN(foundDate.getTime())) {
-        console.warn('Fecha inválida en calculateDaysOpen:', dateFound);
+        console.warn('Fecha de encontrado inválida en calculateDaysOpen:', dateFound);
         return 0;
     }
     
-    // Calcular solo días laborales (lunes a viernes)
-    const businessDays = calculateBusinessDays(foundDate, today);
+    if (dateResolved && isNaN(endDate.getTime())) {
+        console.warn('Fecha de resolución inválida en calculateDaysOpen:', dateResolved);
+        // Si la fecha de resolución es inválida, usar fecha actual
+        return calculateBusinessDays(foundDate, new Date());
+    }
     
-    console.log(`Calculando días abiertos laborales: Fecha encontrado=${dateFound}, Fecha parseada=${foundDate.toISOString()}, Hoy=${today.toISOString()}, Días laborales=${businessDays}`);
+    // Calcular solo días laborales (lunes a viernes)
+    const businessDays = calculateBusinessDays(foundDate, endDate);
+    
+    const endDateStr = dateResolved ? dateResolved : 'HOY';
+    console.log(`Calculando días abiertos laborales: Fecha encontrado=${dateFound}, Fecha resolución=${endDateStr}, Días laborales=${businessDays}`);
     console.log(`💼 SOLO DÍAS LABORALES: Excluyendo sábados y domingos del cálculo`);
     
     return businessDays;
+}
+
+// Función auxiliar para parsear fechas en diferentes formatos
+function parseDate(dateString) {
+    if (!dateString) return new Date();
+    
+    // Convertir fecha a objeto Date
+    let parsedDate;
+    
+    if (typeof dateString === 'string') {
+        // Formato DD/MM/AAAA HH:MM
+        if (dateString.match(/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}$/)) {
+            const [datePart, timePart] = dateString.split(/\s+/);
+            const [day, month, year] = datePart.split('/').map(Number);
+            const [hour, minute] = timePart.split(':').map(Number);
+            parsedDate = new Date(year, month - 1, day, hour, minute);
+        }
+        // Formato DD/MM/AAAA (solo fecha)
+        else if (dateString.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+            const [day, month, year] = dateString.split('/').map(Number);
+            parsedDate = new Date(year, month - 1, day);
+        }
+        // Formato YYYY-MM-DD HH:MM
+        else if (dateString.match(/^\d{4}-\d{1,2}-\d{1,2}\s+\d{1,2}:\d{2}$/)) {
+            const [datePart, timePart] = dateString.split(/\s+/);
+            const [year, month, day] = datePart.split('-').map(Number);
+            const [hour, minute] = timePart.split(':').map(Number);
+            parsedDate = new Date(year, month - 1, day, hour, minute);
+        }
+        // Formato YYYY-MM-DD (solo fecha)
+        else if (dateString.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
+            const [year, month, day] = dateString.split('-').map(Number);
+            parsedDate = new Date(year, month - 1, day);
+        }
+        else {
+            // Intentar parsear directamente como último recurso
+            parsedDate = new Date(dateString);
+        }
+    } else {
+        // Si ya es un objeto Date o número
+        parsedDate = new Date(dateString);
+    }
+    
+    return parsedDate;
 }
 
 // Función auxiliar para calcular días laborales entre dos fechas (excluyendo sábados y domingos)
@@ -2208,7 +2227,7 @@ function exportDefects() {
             defect.escenario,
             defect.assignee,
             defect.dateFound,
-            calculateDaysOpen(defect.dateFound)
+            calculateDaysOpen(defect.dateFound, defect.dateResolved)
         ])
     ].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
     
