@@ -642,6 +642,7 @@ function createCharts() {
     updateDefectCycleTimeChart(testData.defects);
     updateCoverageChart(testData.testDetails);
     updateDailyExecutionChart(testData.testDetails);
+    updateExecutorDistributionChart(testData.testDetails);
 }
 
 // Gráfica de pastel - Resumen de resultados
@@ -1597,6 +1598,170 @@ function updateDailyExecutionChart(detailsData) {
     };
 
     Plotly.newPlot('dailyExecutionChart', traces, layout, config);
+}
+
+// Función para actualizar Distribución Total por Ejecutor (Pie Chart)
+function updateExecutorDistributionChart(detailsData) {
+    if (!detailsData || detailsData.length === 0) {
+        console.log('No hay datos de pruebas para el gráfico de distribución por ejecutor');
+        
+        // Mostrar gráfico vacío
+        const layout = {
+            margin: { t: 20, b: 20, l: 20, r: 20 },
+            showlegend: false,
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            font: {
+                family: 'Inter, sans-serif',
+                size: 12,
+                color: '#1e293b'
+            },
+            annotations: [{
+                text: 'No hay datos de ejecución disponibles',
+                x: 0.5,
+                y: 0.5,
+                xref: 'paper',
+                yref: 'paper',
+                showarrow: false,
+                font: { size: 14, color: '#64748b' }
+            }]
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        Plotly.newPlot('executorDistributionChart', [], layout, config);
+        return;
+    }
+
+    console.log('🍰 Actualizando gráfico de distribución por ejecutor con', detailsData.length, 'pruebas');
+
+    // Filtrar solo las pruebas que tienen fecha de ejecución y ejecutor
+    const executedTests = detailsData.filter(test => {
+        return test.dia_ejecutado && test.dia_ejecutado.trim() !== '' && 
+               test.executor && test.executor.trim() !== '';
+    });
+
+    console.log('📈 Pruebas ejecutadas con datos completos:', executedTests.length);
+
+    if (executedTests.length === 0) {
+        // Mostrar gráfico indicando que no hay datos de ejecución
+        const layout = {
+            margin: { t: 20, b: 20, l: 20, r: 20 },
+            showlegend: false,
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            font: {
+                family: 'Inter, sans-serif',
+                size: 12,
+                color: '#1e293b'
+            },
+            annotations: [{
+                text: 'No hay pruebas ejecutadas para mostrar',
+                x: 0.5,
+                y: 0.5,
+                xref: 'paper',
+                yref: 'paper',
+                showarrow: false,
+                font: { size: 14, color: '#64748b' }
+            }]
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        Plotly.newPlot('executorDistributionChart', [], layout, config);
+        return;
+    }
+
+    // Contar casos ejecutados por cada ejecutor
+    const executorCounts = {};
+    
+    executedTests.forEach(test => {
+        const executor = test.executor.trim();
+        if (!executorCounts[executor]) {
+            executorCounts[executor] = 0;
+        }
+        executorCounts[executor]++;
+    });
+
+    console.log('📊 Distribución por ejecutor:', executorCounts);
+
+    // Ordenar ejecutores por cantidad de casos (descendente)
+    const sortedExecutors = Object.entries(executorCounts)
+        .sort((a, b) => b[1] - a[1]);
+
+    const executors = sortedExecutors.map(entry => entry[0]);
+    const counts = sortedExecutors.map(entry => entry[1]);
+
+    // Colores para el gráfico circular
+    const colors = [
+        '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
+        '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
+        '#14b8a6', '#f472b6', '#a855f7', '#22d3ee', '#facc15'
+    ];
+
+    // Calcular estadísticas generales
+    const totalExecutedCases = executedTests.length;
+    const topExecutor = sortedExecutors.length > 0 ? 
+        `${sortedExecutors[0][0]} (${sortedExecutors[0][1]} casos)` : '-';
+
+    console.log(`📊 Total de casos ejecutados: ${totalExecutedCases}, ejecutor principal: ${topExecutor}`);
+
+    // Crear el gráfico circular (pie chart sin hueco)
+    const data = [{
+        values: counts,
+        labels: executors,
+        type: 'pie',
+        hole: 0, // Gráfico circular completo (no donut)
+        marker: {
+            colors: colors.slice(0, executors.length)
+        },
+        textinfo: 'label+percent+value',
+        textposition: 'outside',
+        hovertemplate: '<b>%{label}</b><br>' +
+                      'Casos ejecutados: %{value}<br>' +
+                      'Porcentaje: %{percent}<br>' +
+                      '<extra></extra>',
+        textfont: {
+            size: 12,
+            color: '#1e293b'
+        }
+    }];
+
+    const layout = {
+        margin: { t: 20, b: 80, l: 20, r: 20 },
+        showlegend: true,
+        legend: {
+            orientation: 'h',
+            x: 0.5,
+            y: -0.1,
+            xanchor: 'center',
+            yanchor: 'top',
+            font: {
+                size: 11,
+                color: '#1e293b'
+            }
+        },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        font: {
+            family: 'Inter, sans-serif',
+            size: 12,
+            color: '#1e293b'
+        }
+    };
+
+    const config = {
+        responsive: true,
+        displayModeBar: false
+    };
+
+    Plotly.newPlot('executorDistributionChart', data, layout, config);
 }
 
 // Variables para paginación
@@ -2767,6 +2932,7 @@ window.addEventListener('resize', function() {
     Plotly.Plots.resize('burndownChart');
     Plotly.Plots.resize('coverageChart');
     Plotly.Plots.resize('dailyExecutionChart');
+    Plotly.Plots.resize('executorDistributionChart');
 });
 
 // Configurar carga de archivos
@@ -3767,7 +3933,10 @@ function updateSummaryFromDetails() {
     // Actualizar gráfico de ejecución diaria
     updateDailyExecutionChart(testData.testDetails);
     
-    console.log('✅ Resumen, cobertura y ejecución diaria actualizados desde detalles');
+    // Actualizar gráfico de distribución por ejecutor
+    updateExecutorDistributionChart(testData.testDetails);
+    
+    console.log('✅ Resumen, cobertura, ejecución diaria y distribución por ejecutor actualizados desde detalles');
 }
 
 // Mostrar notificaciones
@@ -4244,7 +4413,8 @@ function copyAndExpandExistingChart(chartType, containerId) {
         'defects': 'defectsChart',
         'burndown': 'burndownChart',
         'coverage': 'coverageChart',
-        'dailyExecution': 'dailyExecutionChart'
+        'dailyExecution': 'dailyExecutionChart',
+        'executorDistribution': 'executorDistributionChart'
     };
     
     sourceChartId = chartIdMap[chartType];
