@@ -55,6 +55,7 @@ DASHBOARD QA REPORTE DIARIO/
 
 ## 🛠️ Instalación y Uso
 
+
 ### **Requisitos Previos**
 - Navegador web moderno (Chrome, Firefox, Safari, Edge)
 - Servidor web local (opcional, pero recomendado)
@@ -214,3 +215,4 @@ Para contribuir al proyecto:
 ---
 
 **Desarrollado con ❤️ para el equipo QA de Santander**
+:D
