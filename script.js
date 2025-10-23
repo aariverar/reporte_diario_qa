@@ -1397,6 +1397,13 @@ function updateCoverageChart(detailsData) {
 
 // Función para actualizar Ejecución Diaria por Ejecutor
 function updateDailyExecutionChart(detailsData) {
+    // Verificar que el elemento DOM existe
+    const chartElement = document.getElementById('dailyExecutionChart');
+    if (!chartElement) {
+        console.warn('Elemento dailyExecutionChart no encontrado en el DOM');
+        return;
+    }
+
     if (!detailsData || detailsData.length === 0) {
         console.log('No hay datos de pruebas para el gráfico de ejecución diaria');
         
@@ -1602,6 +1609,13 @@ function updateDailyExecutionChart(detailsData) {
 
 // Función para actualizar Distribución Total por Ejecutor (Pie Chart)
 function updateExecutorDistributionChart(detailsData) {
+    // Verificar que el elemento DOM existe
+    const chartElement = document.getElementById('executorDistributionChart');
+    if (!chartElement) {
+        console.warn('Elemento executorDistributionChart no encontrado en el DOM');
+        return;
+    }
+
     if (!detailsData || detailsData.length === 0) {
         console.log('No hay datos de pruebas para el gráfico de distribución por ejecutor');
         
