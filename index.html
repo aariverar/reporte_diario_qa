@@ -294,6 +294,21 @@
                     </div>
                     <div id="coverageChart" class="chart"></div>
                 </div>
+
+                <!-- Daily Execution by Tester Chart -->
+                <div class="chart-container">
+                    <button class="chart-expand-btn" onclick="expandChart('dailyExecution', 'Ejecución Diaria por Ejecutor')" title="Ver ampliado">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <div class="chart-header">
+                        <h3>Ejecución Diaria por Ejecutor</h3>
+                        <div class="execution-stats">
+                            <span class="execution-stat">Total Ejecutores: <strong id="totalExecutors">0</strong></span>
+                            <span class="execution-stat">Promedio Diario: <strong id="avgDailyExecution">0</strong></span>
+                        </div>
+                    </div>
+                    <div id="dailyExecutionChart" class="chart"></div>
+                </div>
             </section>
 
             <!-- Defects Details Table -->

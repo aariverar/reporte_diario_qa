@@ -1908,6 +1908,26 @@ body::before {
     font-weight: 600;
 }
 
+/* Daily Execution Chart Styles */
+.execution-stats {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.execution-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.execution-stat strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
 /* Footer Styles */
 .footer {
     background: linear-gradient(135deg, var(--accent-color) 0%, #222222 100%);
