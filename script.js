@@ -131,7 +131,7 @@ function calculateProjectProgress() {
         return 0.0;
     }
     
-    // Función para parsear fechas en formato dd/MM/yyyy (reutilizando la misma lógica)
+    // Función para parsear fechas en formato dd/MM/yyyy
     function parseDateDDMMYYYY(dateStr) {
         if (!dateStr || typeof dateStr !== 'string') return null;
         
@@ -149,8 +149,8 @@ function calculateProjectProgress() {
     }
     
     // Fecha objetivo: fecha actual del sistema
-    const fechaObjetivo = new Date(); // CORRECCIÓN: Usar fecha actual del sistema
-    console.log(`🗓️ CÁLCULO % REAL - Hasta fecha: ${fechaObjetivo.toISOString().split('T')[0]} (${fechaObjetivo.toLocaleDateString('es-ES', { weekday: 'long' })})`);
+    const fechaObjetivo = new Date();
+    console.log(`🗓️ CÁLCULO % REAL - Buscar % Real para fecha: ${fechaObjetivo.toISOString().split('T')[0]} (${fechaObjetivo.toLocaleDateString('es-ES', { weekday: 'long' })})`);
     
     // Ordenar tendencia por fecha
     const trendSorted = [...testData.trend].sort((a, b) => {
@@ -159,17 +159,11 @@ function calculateProjectProgress() {
         return dateA && dateB ? dateA - dateB : 0;
     });
     
-    // NUEVA LÓGICA: Sumar exitosos + fallidos hasta la fecha actual
-    let casosEjecutadosAcumulados = 0; // exitosos + fallidos hasta 13/10/2025
-    let totalCasosProyecto = 0; // total de casos planificados del proyecto
+    // Buscar % Real directamente de la columna "% Real" de Tendencia_Historica
+    let realProgress = 0.0;
     let ultimaFechaIncluida = null;
     
-    // Calcular total de casos del proyecto (suma de todos los días planificados)
-    trendSorted.forEach(dayData => {
-        totalCasosProyecto += dayData.planned || 0;
-    });
-    
-    // Sumar casos ejecutados (exitosos + fallidos) solo hasta la fecha objetivo
+    // Buscar el último día que sea <= fecha actual y que tenga % Real
     trendSorted.forEach((dayData, index) => {
         const dayDate = parseDateDDMMYYYY(dayData.date);
         if (!dayDate) {
@@ -177,36 +171,25 @@ function calculateProjectProgress() {
             return;
         }
         
-        const exitososDelDia = dayData.successful || 0;
-        const fallidosDelDia = dayData.failed || 0;
-        const ejecutadosDelDia = exitososDelDia + fallidosDelDia;
         const isIncluded = dayDate <= fechaObjetivo;
+        const porcentajeReal = parseFloat(dayData.realProgress || dayData.real_progress || 0);
         const fechaFormateada = dayDate.toISOString().split('T')[0];
         const diaSemana = dayDate.toLocaleDateString('es-ES', { weekday: 'long' });
         
-        console.log(`  Fila ${index + 1}: ${dayData.date} (${diaSemana}) -> Exitosos: ${exitososDelDia}, Fallidos: ${fallidosDelDia}, Total: ${ejecutadosDelDia}`);
+        console.log(`  Fila ${index + 1}: ${dayData.date} (${diaSemana}) -> % Real: ${porcentajeReal}%`);
         console.log(`    Comparación: ${fechaFormateada} <= ${fechaObjetivo.toISOString().split('T')[0]} = ${isIncluded} ${isIncluded ? '✅ INCLUIR' : '❌ EXCLUIR'}`);
         
-        if (isIncluded) {
-            casosEjecutadosAcumulados += ejecutadosDelDia;
+        if (isIncluded && porcentajeReal > 0) {
+            realProgress = porcentajeReal;
             ultimaFechaIncluida = dayData.date;
         }
     });
     
-    if (totalCasosProyecto === 0) {
-        console.warn('⚠️ Total de casos planificados del proyecto es 0');
-        return 0.0;
-    }
-    
-    const realProgress = parseFloat(((casosEjecutadosAcumulados / totalCasosProyecto) * 100).toFixed(1));
-    
-    console.log(`📊 FÓRMULA EXCEL % REAL: (SUMA($D$2:D_actual)+SUMA($E$2:E_actual))/SUMA($C$2:$C$20)*100`);
+    console.log(`📊 % REAL DESDE COLUMNA TENDENCIA_HISTORICA:`);
     console.log(`   • FECHA OBJETIVO: ${fechaObjetivo.toISOString().split('T')[0]} (${fechaObjetivo.toLocaleDateString('es-ES', { weekday: 'long' })})`);
     console.log(`   • ÚLTIMA FECHA INCLUIDA: ${ultimaFechaIncluida}`);
-    console.log(`   • SUMA($D$2:D_actual) + SUMA($E$2:E_actual): ${casosEjecutadosAcumulados} (exitosos + fallidos acumulados)`);
-    console.log(`   • SUMA($C$2:$C$20): ${totalCasosProyecto} (total planificadas del proyecto)`);
-    console.log(`   • % Real: ${realProgress}% = (${casosEjecutadosAcumulados}/${totalCasosProyecto}) * 100`);
-    console.log(`💡 CÁLCULO DINÁMICO BASADO EN FECHA ACTUAL DEL SISTEMA`);
+    console.log(`   • % Real encontrado: ${realProgress}%`);
+    console.log(`💡 LECTURA DIRECTA DESDE COLUMNA % REAL DEL EXCEL`);
     
     return realProgress;
 }
@@ -424,6 +407,7 @@ function initializeDashboard() {
     document.getElementById('successfulTests').textContent = testData.summary.successful;
     document.getElementById('failedTests').textContent = testData.summary.failed;
     document.getElementById('pendingTests').textContent = testData.summary.pending;
+    console.log(`🔍 DEBUGGING DOM - VALOR FINAL MOSTRADO EN PENDIENTES: ${testData.summary.pending}`);
     
     // Actualizar pruebas bloqueadas
     document.getElementById('blockedTests').textContent = blockedCount;
@@ -3270,37 +3254,47 @@ function calculateSummaryFromDetails(pruebas) {
         // Aplicar mapStatus para mapear correctamente desde Excel
         const estadoOriginal = prueba.Estado || prueba.estado || '';
         const estadoMapeado = mapStatus(estadoOriginal);
-        console.log(`DEBUG: Estado original "${estadoOriginal}" -> mapeado "${estadoMapeado}"`);
+        console.log(`DEBUG CONTEO: Estado original "${estadoOriginal}" -> mapeado "${estadoMapeado}"`);
         
         switch (estadoMapeado.toLowerCase()) {
             case 'exitosa':
             case 'success':
                 exitosas++;
+                console.log(`  ✅ Contando como EXITOSA (total exitosas: ${exitosas})`);
                 break;
             case 'fallida':
             case 'failed':
             case 'failure':
                 fallidas++;
+                console.log(`  ❌ Contando como FALLIDA (total fallidas: ${fallidas})`);
                 break;
             case 'pendiente':
             case 'pending':
                 pendientes++;
+                console.log(`  ⏳ Contando como PENDIENTE (total pendientes: ${pendientes})`);
                 break;
             case 'bloqueada':
             case 'blocked':
                 bloqueadas++;
+                console.log(`  🚫 Contando como BLOQUEADA (total bloqueadas: ${bloqueadas})`);
                 break;
             case 'desestimado':
             case 'dismissed':
                 desestimadas++;
+                console.log(`  🚯 Contando como DESESTIMADA (total desestimadas: ${desestimadas})`);
                 break;
+            case 'planificada':
+            case 'planned':
             case '':
             case undefined:
             case null:
-                planificadas++; // Celdas vacías se consideran planificadas
+                planificadas++; // Solo celdas vacías o explícitamente planificadas
+                console.log(`  📋 Contando como PLANIFICADA (total planificadas: ${planificadas})`);
                 break;
             default:
-                planificadas++; // Estados desconocidos se consideran planificadas
+                console.warn(`⚠️ Estado desconocido en calculateSummaryFromDetails: "${estadoOriginal}" -> "${estadoMapeado}"`);
+                pendientes++; // Estados desconocidos se consideran pendientes, no planificadas
+                console.log(`  ❓ Estado desconocido, contando como PENDIENTE (total pendientes: ${pendientes})`);
                 break;
         }
     });
@@ -3402,6 +3396,14 @@ function transformMultiProjectData(data) {
         tipo_fin: typeof data.proyecto.fecha_fin
     });
     
+    console.log(`🔍 DEBUGGING TRANSFORM - VALORES DEL RESUMEN:`);
+    console.log(`   • data.resumen.pruebas_planificadas: ${data.resumen.pruebas_planificadas}`);
+    console.log(`   • data.resumen.pruebas_exitosas: ${data.resumen.pruebas_exitosas}`);
+    console.log(`   • data.resumen.pruebas_fallidas: ${data.resumen.pruebas_fallidas}`);
+    console.log(`   • data.resumen.pruebas_pendientes: ${data.resumen.pruebas_pendientes}`);
+    console.log(`   • data.resumen.pruebas_bloqueadas: ${data.resumen.pruebas_bloqueadas}`);
+    console.log(`   • data.resumen.pruebas_desestimadas: ${data.resumen.pruebas_desestimadas}`);
+    
     const transformed = {
         projectInfo: {
             name: data.proyecto.nombre_proyecto,
@@ -3419,15 +3421,21 @@ function transformMultiProjectData(data) {
             blocked: data.resumen.pruebas_bloqueadas || 0,
             dismissed: data.resumen.pruebas_desestimadas || 0
         },
-        trend: data.tendencia.map(t => ({
-            date: formatDateForDashboard(t.fecha),
-            planned: t.planificadas,
-            successful: t.exitosas,
-            failed: t.fallidas,
-            pending: t.pendientes,
-            blocked: t.bloqueadas || 0,
-            dismissed: t.desestimadas || 0
-        })),
+        trend: (() => {
+            // Mapear datos de tendencia desde Excel
+            const trendData = data.tendencia.map(t => ({
+                date: formatDateForDashboard(t.fecha),
+                planned: t.planificadas,
+                successful: t.exitosas,
+                failed: t.fallidas,
+                pending: t.pendientes,
+                blocked: t.bloqueadas || 0,
+                dismissed: t.desestimadas || 0,
+                realProgress: t.real_progress || t.realProgress || t['% Real'] || 0
+            }));
+            
+            return trendData;
+        })(),
         categories: data.categorias.map(c => ({
             escenario: c.escenario,
             planned: c.planificadas,
@@ -3495,6 +3503,14 @@ function transformMultiProjectData(data) {
         endDate: transformed.projectInfo.endDate
     });
     
+    console.log(`🔍 DEBUGGING TRANSFORM - SUMMARY FINAL TRANSFORMADO:`);
+    console.log(`   • planned: ${transformed.summary.planned}`);
+    console.log(`   • successful: ${transformed.summary.successful}`);
+    console.log(`   • failed: ${transformed.summary.failed}`);
+    console.log(`   • pending: ${transformed.summary.pending}`);
+    console.log(`   • blocked: ${transformed.summary.blocked}`);
+    console.log(`   • dismissed: ${transformed.summary.dismissed}`);
+    
     return transformed;
 }
 
@@ -3534,50 +3550,64 @@ function formatDateForDashboard(dateValue) {
     }
     // Si es un string
     else if (typeof dateValue === 'string') {
+        // Limpiar string y corregir formatos corruptos
+        let cleanedDate = dateValue.trim();
+        
+        // Corregir formato corrupto como "24/1072025" -> "24/10/2025"
+        if (cleanedDate.match(/^\d{1,2}\/\d{6,8}$/)) {
+            const parts = cleanedDate.split('/');
+            if (parts.length === 2 && parts[1].length >= 6) {
+                const day = parts[0];
+                const monthYear = parts[1];
+                // Asumir que los primeros 2 dígitos son el mes
+                const month = monthYear.substring(0, 2);
+                const year = monthYear.substring(2);
+                cleanedDate = `${day}/${month}/${year}`;
+                console.log('Formato corrupto corregido:', dateValue, '->', cleanedDate);
+            }
+        }
+        
         // Formato DD/MM/AAAA HH:MM (con hora y minutos)
-        if (dateValue.match(/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}$/)) {
-            const [datePart, timePart] = dateValue.split(/\s+/);
+        if (cleanedDate.match(/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}$/)) {
+            const [datePart, timePart] = cleanedDate.split(/\s+/);
             const [day, month, year] = datePart.split('/').map(Number);
-            const [hour, minute] = timePart.split(':').map(Number);
             
-            date = new Date(year, month - 1, day, hour, minute);
-            console.log('DD/MM/AAAA HH:MM convertido:', dateValue, '->', date);
+            date = new Date(year, month - 1, day);
+            console.log('DD/MM/AAAA HH:MM convertido (ignorando hora):', dateValue, '->', date);
         }
         // Formato DD/MM/AAAA (solo fecha)
-        else if (dateValue.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
-            const [day, month, year] = dateValue.split('/').map(Number);
+        else if (cleanedDate.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+            const [day, month, year] = cleanedDate.split('/').map(Number);
             date = new Date(year, month - 1, day);
-            console.log('DD/MM/AAAA convertido:', dateValue, '->', date);
+            console.log('DD/MM/AAAA convertido:', cleanedDate, '->', date);
         }
         // Formato DD-MM-AAAA HH:MM
-        else if (dateValue.match(/^\d{1,2}-\d{1,2}-\d{4}\s+\d{1,2}:\d{2}$/)) {
-            const [datePart, timePart] = dateValue.split(/\s+/);
+        else if (cleanedDate.match(/^\d{1,2}-\d{1,2}-\d{4}\s+\d{1,2}:\d{2}$/)) {
+            const [datePart, timePart] = cleanedDate.split(/\s+/);
             const [day, month, year] = datePart.split('-').map(Number);
-            const [hour, minute] = timePart.split(':').map(Number);
             
-            date = new Date(year, month - 1, day, hour, minute);
+            date = new Date(year, month - 1, day);
         }
         // Formato DD-MM-AAAA (solo fecha)
-        else if (dateValue.match(/^\d{1,2}-\d{1,2}-\d{4}$/)) {
-            const [day, month, year] = dateValue.split('-').map(Number);
+        else if (cleanedDate.match(/^\d{1,2}-\d{1,2}-\d{4}$/)) {
+            const [day, month, year] = cleanedDate.split('-').map(Number);
             date = new Date(year, month - 1, day);
         }
         // Formato YYYY-MM-DD HH:MM
-        else if (dateValue.match(/^\d{4}-\d{1,2}-\d{1,2}\s+\d{1,2}:\d{2}$/)) {
-            const [datePart, timePart] = dateValue.split(/\s+/);
+        else if (cleanedDate.match(/^\d{4}-\d{1,2}-\d{1,2}\s+\d{1,2}:\d{2}$/)) {
+            const [datePart, timePart] = cleanedDate.split(/\s+/);
             const [year, month, day] = datePart.split('-').map(Number);
-            const [hour, minute] = timePart.split(':').map(Number);
             
-            date = new Date(year, month - 1, day, hour, minute);
+            date = new Date(year, month - 1, day);
         }
         // Formato YYYY-MM-DD (solo fecha)
-        else if (dateValue.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
-            const [year, month, day] = dateValue.split('-').map(Number);
+        else if (cleanedDate.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
+            const [year, month, day] = cleanedDate.split('-').map(Number);
             date = new Date(year, month - 1, day);
         }
         else {
             // Intentar parsear directamente
-            date = new Date(dateValue);
+            date = new Date(cleanedDate);
         }
         
         console.log('String convertido:', dateValue, '->', date);
@@ -3759,8 +3789,9 @@ function updateDashboardWithCSVData(data, type) {
             };
         });
         
-        // Recalcular resumen basado en los detalles
-        updateSummaryFromDetails();
+        // COMENTADO: No recalcular resumen cuando viene de Excel multi-proyecto
+        // porque ya se calculó correctamente en calculateSummaryFromDetails()
+        // updateSummaryFromDetails();
         populateTestTable();
         
     } else if (type === 'summary') {
@@ -3819,7 +3850,8 @@ function updateDashboardWithExcelData(data, type) {
                     executor: row.Ejecutor || ''
                 };
             });
-            updateSummaryFromDetails();
+            // COMENTADO: No recalcular resumen para evitar doble conteo
+            // updateSummaryFromDetails();
             populateTestTable();
             break;
             
@@ -3884,29 +3916,38 @@ function updateDashboardWithExcelData(data, type) {
 
 // Mapear estados del archivo a formato interno
 function mapStatus(status) {
-    const statusMap = {
-        'Exitosa': 'success',
-        'Fallida': 'failure',
-        'Pendiente': 'pending',
-        'Bloqueada': 'blocked',
-        'Planificada': 'planned',
-        'Desestimado': 'dismissed',
-        'Success': 'success',
-        'Failed': 'failure',
-        'Pending': 'pending',
-        'Blocked': 'blocked',
-        'Planned': 'planned',
-        'Dismissed': 'dismissed'
-    };
-    
     // Si el estado está vacío o es null/undefined, considerarlo como planificada
     if (!status || status.trim() === '') {
         return 'planned';
     }
     
-    const mappedStatus = statusMap[status] || 'planned';
-    console.log(`🔄 MAPEO ESTADO: "${status}" → "${mappedStatus}"`);
+    // Normalizar el estado (quitar espacios y convertir a minúsculas para comparación)
+    const normalizedStatus = status.trim().toLowerCase();
     
+    const statusMap = {
+        'exitosa': 'success',
+        'fallida': 'failure', 
+        'pendiente': 'pending',
+        'bloqueada': 'blocked',
+        'planificada': 'planned',
+        'desestimado': 'dismissed',
+        'success': 'success',
+        'failed': 'failure',
+        'failure': 'failure',
+        'pending': 'pending',
+        'blocked': 'blocked',
+        'planned': 'planned',
+        'dismissed': 'dismissed'
+    };
+    
+    const mappedStatus = statusMap[normalizedStatus];
+    
+    if (!mappedStatus) {
+        console.warn(`⚠️ ESTADO DESCONOCIDO: "${status}" - NO SE MAPEA A NINGÚN ESTADO CONOCIDO`);
+        return 'pending'; // Por defecto, estado desconocido se considera pendiente, no planificado
+    }
+    
+    console.log(`🔄 MAPEO ESTADO: "${status}" → "${mappedStatus}"`);
     return mappedStatus;
 }
 
