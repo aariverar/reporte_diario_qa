@@ -3002,6 +3002,7 @@ function handleFileUpload(event) {
         handleExcelFile(file);
     } else {
         showNotification('Formato de archivo no soportado. Use .xlsx, .xls o .csv', 'error');
+        hideLoadingState(); // Ocultar loading en caso de error
         // Limpiar el input del archivo
         event.target.value = '';
         return;
@@ -3010,6 +3011,11 @@ function handleFileUpload(event) {
 
 // Función para resetear el estado del dashboard
 function resetDashboardState() {
+    console.log('🔄 Limpiando estado del dashboard para nueva carga...');
+    
+    // Mostrar indicador de carga
+    showLoadingState();
+    
     // Resetear variables de paginación
     filteredTests = [];
     currentPage = 1;
@@ -3050,17 +3056,83 @@ function resetDashboardState() {
         defectsSearchInput.value = '';
     }
     
+    // Limpiar gráficos existentes para evitar solapamiento visual
+    clearAllCharts();
+    
+    // Limpiar localStorage para evitar datos cached
+    localStorage.removeItem('qaEditorData');
+    
+    // Limpiar filtros adicionales
     const severityFilter = document.getElementById('severityFilter');
     if (severityFilter) {
         severityFilter.value = '';
     }
     
-    const statusFilter = document.getElementById('statusFilter');
-    if (statusFilter) {
-        statusFilter.value = '';
+    console.log('✅ Estado del dashboard limpiado correctamente');
+}
+
+// Función para mostrar estado de carga
+function showLoadingState() {
+    // Agregar overlay de carga si no existe
+    let loadingOverlay = document.getElementById('loadingOverlay');
+    if (!loadingOverlay) {
+        loadingOverlay = document.createElement('div');
+        loadingOverlay.id = 'loadingOverlay';
+        loadingOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            font-family: Inter, sans-serif;
+        `;
+        loadingOverlay.innerHTML = `
+            <div style="text-align: center;">
+                <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+                <p style="font-size: 16px; color: #333;">Cargando nuevo archivo...</p>
+            </div>
+        `;
+        document.body.appendChild(loadingOverlay);
+        
+        // Agregar animación CSS si no existe
+        if (!document.getElementById('spinAnimation')) {
+            const style = document.createElement('style');
+            style.id = 'spinAnimation';
+            style.textContent = `
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
     }
-    
-    console.log('Dashboard state reset completed');
+    loadingOverlay.style.display = 'flex';
+}
+
+// Función para ocultar estado de carga
+function hideLoadingState() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+}
+
+// Función para limpiar todos los gráficos
+function clearAllCharts() {
+    const chartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'coverageChart', 'dailyExecutionChart', 'executorDistributionChart'];
+    chartIds.forEach(chartId => {
+        const chartElement = document.getElementById(chartId);
+        if (chartElement) {
+            // Limpiar contenido del gráfico
+            chartElement.innerHTML = '';
+        }
+    });
 }
 
 // Manejar archivos CSV
@@ -3120,6 +3192,7 @@ function handleExcelFile(file) {
             if (hasAllSheets) {
                 handleMultiProjectExcel(workbook);
                 showNotification('Archivo multi-proyecto cargado exitosamente', 'success');
+                hideLoadingState(); // Ocultar loading después de carga exitosa
             } else {
                 // Formato legacy - procesar hojas individuales
                 handleLegacyExcel(workbook);
@@ -3128,6 +3201,7 @@ function handleExcelFile(file) {
         } catch (error) {
             console.error('Error procesando Excel:', error);
             showNotification('Error al procesar el archivo Excel: ' + error.message, 'error');
+            hideLoadingState(); // Ocultar loading en caso de error
             // Resetear el input del archivo en caso de error
             const fileInput = document.getElementById('excelFile');
             if (fileInput) {
@@ -3275,10 +3349,12 @@ function loadProjectData(proyectoId, allData) {
         // Actualizar dashboard
         updateDashboardWithTransformedData(dashboardData);
         showNotification(`Proyecto "${proyectoInfo.nombre_proyecto}" cargado exitosamente`, 'success');
+        hideLoadingState(); // Ocultar loading después de carga exitosa
         
     } catch (error) {
         console.error('Error cargando datos del proyecto:', error);
         showNotification('Error al cargar los datos del proyecto', 'error');
+        hideLoadingState(); // Ocultar loading en caso de error
     }
 }
 
