@@ -1249,45 +1249,83 @@ function updateDefectCycleTimeChart(defectsData) {
 // Función para actualizar Cobertura por Módulo
 function updateCoverageChart(detailsData) {
     if (!detailsData || detailsData.length === 0) {
-        console.log('No hay datos de detalles para cobertura por escenario');
+        console.log('⚠️ No hay datos de detalles para cobertura por escenario');
         return;
     }
 
-    console.log('🔍 Actualizando gráfico de cobertura con', detailsData.length, 'pruebas');
+    console.log(`🔍 DEBUGGING COBERTURA: Actualizando gráfico de cobertura con ${detailsData.length} pruebas`);
+    console.log('🔍 DEBUGGING COBERTURA: Muestra de datos:', detailsData.slice(0, 3));
 
     // Agrupar por escenario/módulo
     const moduleStats = {};
     
-    detailsData.forEach(test => {
+    detailsData.forEach((test, index) => {
         const module = test.escenario || test.categoria || test.modulo || 'Sin Escenario';
+        const status = test.status || '';
         
         if (!moduleStats[module]) {
             moduleStats[module] = {
                 total: 0,
                 completed: 0,
-                planned: 0
+                planned: 0,
+                exitosas: 0,
+                desestimadas: 0,
+                fallidas: 0,
+                pendientes: 0,
+                bloqueadas: 0
             };
         }
         
         moduleStats[module].total++;
         
-        // COBERTURA REAL: Solo casos exitosos cuentan como cubiertos
-        const status = test.status || '';
-        if (status === 'success') {
-            moduleStats[module].completed++;
-        } else {
-            // Fallidos, pendientes y bloqueados NO cuentan para cobertura
-            moduleStats[module].planned++;
+        // Contar por tipo específico para debugging
+        switch(status) {
+            case 'success':
+                moduleStats[module].exitosas++;
+                moduleStats[module].completed++;
+                break;
+            case 'dismissed':
+                moduleStats[module].desestimadas++;
+                moduleStats[module].completed++;
+                break;
+            case 'failure':
+                moduleStats[module].fallidas++;
+                moduleStats[module].planned++;
+                break;
+            case 'pending':
+                moduleStats[module].pendientes++;
+                moduleStats[module].planned++;
+                break;
+            case 'blocked':
+                moduleStats[module].bloqueadas++;
+                moduleStats[module].planned++;
+                break;
+            default:
+                console.warn(`⚠️ Estado desconocido en cobertura: "${status}" para prueba ${index + 1}`);
+                moduleStats[module].planned++;
         }
         
-        // Log para depuración - solo exitosos cuentan para cobertura
+        // Log detallado para las primeras pruebas de cada módulo
         if (moduleStats[module].total <= 3) {
-            const cubierto = status === 'success' ? 'CUBIERTO' : 'NO CUBIERTO';
-            console.log(`📊 ${module}: Prueba "${test.name}" con status "${status}" → ${cubierto}`);
+            const cubierto = (status === 'success' || status === 'dismissed') ? 'CUBIERTO' : 'NO CUBIERTO';
+            console.log(`📊 COBERTURA ${module}: Prueba "${test.name}" con status "${status}" → ${cubierto}`);
         }
     });
 
-    console.log('📈 Estadísticas por escenario:', moduleStats);
+    console.log(`📈 DEBUGGING COBERTURA: Estadísticas detalladas por escenario:`);
+    Object.keys(moduleStats).forEach(module => {
+        const stats = moduleStats[module];
+        const porcentaje = Math.round((stats.completed / stats.total) * 100);
+        console.log(`   • ${module}:`);
+        console.log(`     - Total: ${stats.total}`);
+        console.log(`     - Exitosas: ${stats.exitosas}`);
+        console.log(`     - Desestimadas: ${stats.desestimadas}`);
+        console.log(`     - Completadas (exitosas + desestimadas): ${stats.completed}`);
+        console.log(`     - Fallidas: ${stats.fallidas}`);
+        console.log(`     - Pendientes: ${stats.pendientes}`);
+        console.log(`     - Bloqueadas: ${stats.bloqueadas}`);
+        console.log(`     - COBERTURA: ${porcentaje}%`);
+    });
 
     // Calcular porcentajes de cobertura
     const modules = Object.keys(moduleStats);
@@ -1296,7 +1334,7 @@ function updateCoverageChart(detailsData) {
         return Math.round((stats.completed / stats.total) * 100);
     });
 
-    console.log('📊 Porcentajes de cobertura:', modules.map((m, i) => `${m}: ${coveragePercentages[i]}%`));
+    console.log('📊 Porcentajes de cobertura final:', modules.map((m, i) => `${m}: ${coveragePercentages[i]}%`));
     
     // Mostrar módulos con 100% de éxito (barras verdes)
     const perfectModules = modules.filter((m, i) => coveragePercentages[i] === 100);
@@ -1363,11 +1401,20 @@ function updateCoverageChart(detailsData) {
             gridcolor: '#f1f5f9',
             range: [0, 100]
         },
+        yaxis: {
+            title: '',
+            gridcolor: '#f1f5f9',
+            automargin: true,
+            tickfont: {
+                size: 11,
+                family: 'Inter, sans-serif'
+            }
+        },
         
         plot_bgcolor: 'rgba(0,0,0,0)',
         paper_bgcolor: 'rgba(0,0,0,0)',
         font: { family: 'Inter, sans-serif', size: 12, color: '#64748b' },
-        margin: { t: 30, r: 30, b: 60, l: 120 },
+        margin: { t: 30, r: 30, b: 60, l: 200 },
         showlegend: false
     };
 
@@ -3645,8 +3692,12 @@ function mapExcelStatusToDashboard(status) {
         'Exitosa': 'success',
         'Fallida': 'failure',
         'Pendiente': 'pending',
-        'Bloqueada': 'blocked'
+        'Bloqueada': 'blocked',
+        'Desestimado': 'dismissed',
+        'Planificada': 'planned'
     };
+    
+    console.log(`🔄 mapExcelStatusToDashboard: "${status}" → "${statusMap[status] || 'pending'}"`);
     return statusMap[status] || 'pending';
 }
 
