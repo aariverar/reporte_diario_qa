@@ -113,8 +113,83 @@ const testData = {
     ]
 };
 
+// Función para forzar actualización anti-caché
+function forcePageRefresh() {
+    // Limpiar todo el localStorage
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Detectar si la página viene del caché del navegador
+    if (performance.navigation.type === performance.navigation.TYPE_BACK_FORWARD) {
+        console.log('🔄 Página cargada desde navegación hacia atrás/adelante - Forzando recarga...');
+        location.reload(true);
+        return;
+    }
+    
+    // Detectar si hay datos previos en memoria
+    if (typeof testData !== 'undefined' && testData.projectInfo && testData.projectInfo.name !== 'Proyecto de Ejemplo') {
+        console.log('🔄 Datos previos detectados - Limpiando...');
+        resetToDefaultState();
+    }
+    
+    // Agregar timestamp único para evitar caché de GitHub Pages
+    const currentTimestamp = new Date().getTime();
+    if (!window.location.search.includes('_t=')) {
+        const separator = window.location.search ? '&' : '?';
+        const newUrl = window.location.href + separator + '_t=' + currentTimestamp;
+        console.log('🔄 Agregando timestamp anti-caché:', newUrl);
+        // Solo cambiar URL sin recargar si no hay parámetros de timestamp
+        window.history.replaceState({}, '', newUrl);
+    }
+    
+    console.log('✅ Limpieza anti-caché completada');
+}
+
+// Función para resetear a estado por defecto
+function resetToDefaultState() {
+    // Resetear testData a valores por defecto
+    if (typeof testData !== 'undefined') {
+        testData.projectInfo = {
+            name: 'Proyecto de Ejemplo',
+            qaResponsible: 'No asignado',
+            startDate: '01/09/2024',
+            endDate: '30/09/2024',
+            status: 'En progreso',
+            progress: 0
+        };
+        
+        testData.summary = {
+            planned: 0,
+            successful: 0,
+            failed: 0,
+            pending: 0,
+            blocked: 0,
+            dismissed: 0
+        };
+    }
+    
+    // Limpiar todos los gráficos
+    clearAllCharts();
+    
+    console.log('✅ Estado reseteado a valores por defecto');
+}
+
 //  Inicializar la aplicación
 document.addEventListener('DOMContentLoaded', function() {
+    // Registrar Service Worker para control de caché
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js?v=20251103')
+            .then(function(registration) {
+                console.log('✅ Service Worker registrado:', registration);
+            })
+            .catch(function(error) {
+                console.log('❌ Error registrando Service Worker:', error);
+            });
+    }
+    
+    // Fuerza limpieza agresiva del caché al cargar la página
+    forcePageRefresh();
+    
     initializeDashboard();
     createCharts();
     populateTestTable();
@@ -3015,6 +3090,21 @@ function resetDashboardState() {
     
     // Mostrar indicador de carga
     showLoadingState();
+    
+    // Limpiar TODA la memoria del objeto testData
+    Object.keys(testData).forEach(key => {
+        if (Array.isArray(testData[key])) {
+            testData[key] = [];
+        } else if (typeof testData[key] === 'object') {
+            testData[key] = {};
+        }
+    });
+    
+    // Forzar limpieza de variables globales
+    if (typeof filteredTests !== 'undefined') filteredTests = [];
+    if (typeof currentPage !== 'undefined') currentPage = 1;
+    if (typeof filteredDefects !== 'undefined') filteredDefects = [];
+    if (typeof defectsCurrentPage !== 'undefined') defectsCurrentPage = 1;
     
     // Resetear variables de paginación
     filteredTests = [];
