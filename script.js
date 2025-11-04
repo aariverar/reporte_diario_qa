@@ -7,6 +7,9 @@ const colors = {
     warning: '#f59e0b'
 };
 
+// Variable global para almacenar los datos cargados del Excel
+let loadedExcelData = null;
+
 // Datos de ejemplo para las pruebas
 const testData = {
     projectInfo: {
@@ -3320,13 +3323,16 @@ function handleMultiProjectExcel(workbook) {
         const detallePruebas = XLSX.utils.sheet_to_json(workbook.Sheets['Detalle_Pruebas']);
         const defectos = XLSX.utils.sheet_to_json(workbook.Sheets['Defectos']);
         
-        // Permitir seleccionar proyecto
-        showProjectSelector(proyectos, {
+        // Almacenar datos en variable global para uso posterior
+        loadedExcelData = {
             proyectos,
             tendenciaHistorica,
             detallePruebas,
             defectos
-        });
+        };
+        
+        // Permitir seleccionar proyecto
+        showProjectSelector(proyectos, loadedExcelData);
         
     } catch (error) {
         console.error('Error procesando datos multi-proyecto:', error);
@@ -3354,7 +3360,7 @@ function showProjectSelector(proyectos, allData) {
     content.innerHTML = `
         <h3 style="margin-bottom: 1rem; color: #1e293b;">Seleccionar Proyecto</h3>
         <p style="margin-bottom: 1.5rem; color: #64748b;">El archivo contiene ${proyectos.length} proyecto(s). Seleccione cuál desea cargar:</p>
-        <div id="projectList" style="margin-bottom: 1.5rem;"></div>
+        <div id="projectList" style="margin-bottom: 1.5rem; max-height: 300px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 6px; padding: 0.5rem;"></div>
         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
             <button id="cancelBtn" style="padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #374151; cursor: pointer;">Cancelar</button>
         </div>
@@ -3364,15 +3370,19 @@ function showProjectSelector(proyectos, allData) {
     proyectos.forEach((proyecto, index) => {
         const projectDiv = document.createElement('div');
         projectDiv.style.cssText = `
-            padding: 1rem; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer;
-            transition: all 0.2s ease; display: flex; justify-content: space-between; align-items: center;
+            padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 0.5rem; cursor: pointer;
+            transition: all 0.2s ease; background: white;
         `;
         
         projectDiv.innerHTML = `
-            <div>
-                <strong style="color: #1e293b;">${proyecto.nombre_proyecto}</strong><br>
-                <small style="color: #64748b;">ID: ${proyecto.proyecto_id} | Responsable: ${proyecto.responsable_qa}</small><br>
-                <small style="color: #64748b;">Estado: ${proyecto.estado_proyecto}</small>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; color: #1e293b; margin-bottom: 0.25rem;">${proyecto.nombre_proyecto}</div>
+                    <div style="font-size: 0.875rem; color: #64748b;">
+                        <span style="font-weight: 500;">ID:</span> ${proyecto.proyecto_id} | 
+                        <span style="font-weight: 500;">Responsable:</span> ${proyecto.responsable_qa}
+                    </div>
+                </div>
             </div>
         `;
         
@@ -3893,10 +3903,10 @@ function updateDashboardWithTransformedData(data) {
         // Guardar datos para funcionalidad de compartir enlace
         currentExcelData = data;
         
-        // Mostrar el botón de compartir
-        const shareButton = document.getElementById('shareButton');
-        if (shareButton) {
-            shareButton.style.display = 'flex';
+        // Mostrar el botón de seleccionar proyecto
+        const selectProjectButton = document.getElementById('selectProjectButton');
+        if (selectProjectButton) {
+            selectProjectButton.style.display = 'flex';
         }
         
         console.log('Dashboard actualizado exitosamente');
@@ -6304,4 +6314,20 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Función para abrir el selector de proyecto con datos precargados
+function openProjectSelector() {
+    if (loadedExcelData && loadedExcelData.proyectos && loadedExcelData.proyectos.length > 0) {
+        // Si hay datos cargados, mostrar el modal de selección
+        showProjectSelector(loadedExcelData.proyectos, loadedExcelData);
+    } else {
+        // Si no hay datos cargados, abrir selector de archivos
+        const fileInput = document.getElementById('excelFile');
+        if (fileInput) {
+            fileInput.click();
+        } else {
+            showNotification('No hay datos cargados. Por favor, cargue un archivo Excel primero.', 'warning');
+        }
+    }
+}
 
