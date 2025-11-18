@@ -705,6 +705,7 @@ function createCharts() {
     updateCoverageChart(testData.testDetails);
     updateDailyExecutionChart(testData.testDetails);
     updateExecutorDistributionChart(testData.testDetails);
+    updateDeliverablesChart();
 }
 
 // Gráfica de pastel - Resumen de resultados
@@ -3627,6 +3628,14 @@ function transformMultiProjectData(data) {
     console.log(`   • data.resumen.pruebas_bloqueadas: ${data.resumen.pruebas_bloqueadas}`);
     console.log(`   • data.resumen.pruebas_desestimadas: ${data.resumen.pruebas_desestimadas}`);
     
+    console.log(`📋 DEBUGGING ENTREGABLES - Datos desde Excel:`);
+    console.log(`   • data.proyecto.PP: "${data.proyecto.PP}"`);
+    console.log(`   • data.proyecto.MT: "${data.proyecto.MT}"`);
+    console.log(`   • data.proyecto.CP: "${data.proyecto.CP}"`);
+    console.log(`   • data.proyecto.EE: "${data.proyecto.EE}"`);
+    console.log(`   • data.proyecto.DF: "${data.proyecto.DF}"`);
+    console.log(`   • data.proyecto.AC: "${data.proyecto.AC}"`);
+    
     const transformed = {
         projectInfo: {
             name: data.proyecto.nombre_proyecto,
@@ -3634,7 +3643,14 @@ function transformMultiProjectData(data) {
             startDate: formatDateForDashboard(data.proyecto.fecha_inicio),
             endDate: formatDateForDashboard(data.proyecto.fecha_fin),
             status: data.proyecto.estado_proyecto,
-            progress: 0  // Se calculará automáticamente basado en pruebas exitosas
+            progress: 0,  // Se calculará automáticamente basado en pruebas exitosas
+            // Campos de entregables (semáforo)
+            PP: data.proyecto.PP || '',  // Plan de Pruebas
+            MT: data.proyecto.MT || '',  // Matriz de Trazabilidad
+            CP: data.proyecto.CP || '',  // Matriz de Casos de Prueba
+            EE: data.proyecto.EE || '',  // Evidencias de Prueba
+            DF: data.proyecto.DF || '',  // Matriz de Defectos
+            AC: data.proyecto.AC || ''   // Informe Final (Acta de Cierre)
         },
         summary: {
             planned: data.resumen.pruebas_planificadas,
@@ -4218,7 +4234,10 @@ function updateSummaryFromDetails() {
     // Actualizar gráfico de distribución por ejecutor
     updateExecutorDistributionChart(testData.testDetails);
     
-    console.log('✅ Resumen, cobertura, ejecución diaria y distribución por ejecutor actualizados desde detalles');
+    // Actualizar gráfico de entregables
+    updateDeliverablesChart();
+    
+    console.log('✅ Resumen, cobertura, ejecución diaria, distribución por ejecutor y entregables actualizados desde detalles');
 }
 
 // Mostrar notificaciones
@@ -4696,7 +4715,8 @@ function copyAndExpandExistingChart(chartType, containerId) {
         'burndown': 'burndownChart',
         'coverage': 'coverageChart',
         'dailyExecution': 'dailyExecutionChart',
-        'executorDistribution': 'executorDistributionChart'
+        'executorDistribution': 'executorDistributionChart',
+        'deliverables': 'deliverablesChart'
     };
     
     sourceChartId = chartIdMap[chartType];
@@ -4781,6 +4801,16 @@ function copyAndExpandExistingChart(chartType, containerId) {
             tickfont: { size: 14 }
         };
         newLayout.margin = { t: 60, b: 60, l: 150, r: 60 }; // Más espacio para etiquetas de módulos
+    }
+    
+    // Configuración específica para gráfico de entregables
+    if (chartType === 'deliverables') {
+        newLayout.margin = { t: 60, b: 60, l: 250, r: 60 }; // Más espacio para nombres de entregables
+        newLayout.height = 500; // Altura fija para mejor visualización
+        newLayout.yaxis = {
+            ...originalLayout.yaxis,
+            tickfont: { size: 14 }
+        };
     }
     
     // Crear el gráfico ampliado con los datos originales
@@ -6331,3 +6361,167 @@ function openProjectSelector() {
     }
 }
 
+// Función para renderizar el gráfico de estado de entregables
+function updateDeliverablesChart() {
+    const chartElement = document.getElementById('deliverablesChart');
+    if (!chartElement) {
+        console.warn('Elemento deliverablesChart no encontrado en el DOM');
+        return;
+    }
+
+    // Verificar si hay datos del proyecto cargados
+    if (!testData || !testData.projectInfo) {
+        console.log('No hay datos de proyecto cargados para entregables');
+        
+        const layout = {
+            margin: { t: 20, b: 20, l: 20, r: 20 },
+            showlegend: false,
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            annotations: [{
+                text: 'No hay datos de entregables disponibles',
+                x: 0.5,
+                y: 0.5,
+                xref: 'paper',
+                yref: 'paper',
+                showarrow: false,
+                font: { size: 14, color: '#64748b' }
+            }]
+        };
+
+        Plotly.newPlot('deliverablesChart', [], layout, { responsive: true, displayModeBar: false });
+        return;
+    }
+
+    // Definición de los entregables con sus campos del Excel
+    const deliverables = [
+        { name: 'Plan de Pruebas', code: 'PP', field: 'PP' },
+        { name: 'Matriz de Trazabilidad', code: 'MT', field: 'MT' },
+        { name: 'Matriz de Casos de Prueba', code: 'CP', field: 'CP' },
+        { name: 'Evidencias de Prueba', code: 'EE', field: 'EE' },
+        { name: 'Matriz de Defectos', code: 'DF', field: 'DF' },
+        { name: 'Informe Final', code: 'AC', field: 'AC' }
+    ];
+
+    // DEBUG: Mostrar datos de entregables
+    console.log('🔍 DEBUG ENTREGABLES - testData.projectInfo:', testData.projectInfo);
+    console.log('📋 Valores de entregables en projectInfo:');
+    deliverables.forEach(d => {
+        console.log(`   ${d.code} (${d.name}):`, testData.projectInfo[d.field]);
+    });
+
+    // Procesar los datos de entregables
+    const labels = [];
+    const colors = [];
+    const xValues = [];
+    const statusTexts = [];
+
+    deliverables.forEach((deliverable, index) => {
+        labels.push(deliverable.name);
+        xValues.push(0.5); // Centrar los círculos
+        
+        let color = '#9ca3af'; // Gris por defecto (sin información)
+        let statusText = 'Sin información';
+        
+        if (testData.projectInfo[deliverable.field]) {
+            const value = testData.projectInfo[deliverable.field].toString().toUpperCase().trim();
+            
+            console.log(`🎨 Procesando ${deliverable.code}: valor original="${testData.projectInfo[deliverable.field]}", procesado="${value}"`);
+            
+            // Detectar color directamente del Excel
+            if (value === 'V' || value === 'VERDE' || value === 'GREEN' || value === 'COMPLETADO') {
+                color = '#10b981'; // Verde
+                statusText = 'Completado';
+                console.log(`   ✅ Color asignado: VERDE`);
+            } else if (value === 'A' || value === 'AMARILLO' || value === 'YELLOW' || value === 'EN PROGRESO') {
+                color = '#f59e0b'; // Amarillo/Naranja
+                statusText = 'En progreso';
+                console.log(`   ⚠️ Color asignado: AMARILLO`);
+            } else if (value === 'R' || value === 'ROJO' || value === 'RED' || value === 'PENDIENTE') {
+                color = '#ef4444'; // Rojo
+                statusText = 'Pendiente';
+                console.log(`   ❌ Color asignado: ROJO`);
+            } else {
+                // Si no coincide con ningún valor conocido, mantener gris
+                statusText = 'Sin información';
+                console.log(`   ⚪ Color asignado: GRIS (valor no reconocido: "${value}")`);
+            }
+        } else {
+            console.log(`🎨 ${deliverable.code}: Campo vacío o undefined`);
+        }
+        
+        colors.push(color);
+        statusTexts.push(statusText);
+    });
+
+    // Invertir arrays para que se muestren en orden correcto (Plotly invierte el eje Y)
+    labels.reverse();
+    colors.reverse();
+    xValues.reverse();
+    statusTexts.reverse();
+
+    // Crear el gráfico tipo scatter con círculos grandes
+    const trace = {
+        type: 'scatter',
+        mode: 'markers+text',
+        x: xValues,
+        y: labels,
+        marker: {
+            size: 30,
+            color: colors,
+            line: {
+                color: 'rgba(0,0,0,0.2)',
+                width: 2
+            },
+            symbol: 'circle'
+        },
+        text: statusTexts,
+        textposition: 'middle right',
+        textfont: {
+            size: 11,
+            color: '#1e293b',
+            family: 'Inter, sans-serif',
+            weight: 500
+        },
+        hovertemplate: '<b>%{y}</b><br>Estado: %{text}<br><extra></extra>'
+    };
+
+    const layout = {
+        margin: { t: 30, b: 40, l: 200, r: 150 },
+        showlegend: false,
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        xaxis: {
+            showticklabels: false,
+            showgrid: false,
+            zeroline: false,
+            range: [0, 1],
+            fixedrange: true
+        },
+        yaxis: {
+            tickfont: {
+                size: 11,
+                color: '#1e293b',
+                family: 'Inter, sans-serif',
+                weight: 500
+            },
+            automargin: true,
+            fixedrange: true
+        },
+        font: {
+            family: 'Inter, sans-serif',
+            size: 11,
+            color: '#1e293b'
+        },
+        height: 320,
+        hovermode: 'closest'
+    };
+
+    const config = {
+        responsive: true,
+        displayModeBar: false,
+        staticPlot: false
+    };
+
+    Plotly.newPlot('deliverablesChart', [trace], layout, config);
+}
