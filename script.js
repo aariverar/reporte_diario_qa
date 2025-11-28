@@ -4160,33 +4160,98 @@ function updateDashboardWithExcelData(data, type) {
 // Mapear estados del archivo a formato interno
 function mapStatus(status) {
     // Si el estado está vacío o es null/undefined, considerarlo como planificada
-    if (!status || status.trim() === '') {
+    if (!status || status.toString().trim() === '') {
         return 'planned';
     }
     
-    // Normalizar el estado (quitar espacios y convertir a minúsculas para comparación)
-    const normalizedStatus = status.trim().toLowerCase();
+    // Normalizar el estado:
+    // 1. Convertir a string por si viene como número
+    // 2. Quitar espacios al inicio y final
+    // 3. Convertir a minúsculas
+    // 4. Quitar la 's' final si existe (para manejar plurales)
+    const normalizedStatus = status.toString().trim().toLowerCase();
+    const singularStatus = normalizedStatus.replace(/s+$/, ''); // Quitar 's' o 'ss' al final
     
-    const statusMap = {
+    // Mapeo amplio que incluye múltiples variaciones
+    const statusPatterns = {
+        // Exitosa/Exitoso/Success
         'exitosa': 'success',
-        'fallida': 'failure', 
-        'pendiente': 'pending',
-        'bloqueada': 'blocked',
-        'planificada': 'planned',
-        'desestimado': 'dismissed',
+        'exitoso': 'success',
+        'exito': 'success',
+        'correcta': 'success',
+        'correcto': 'success',
         'success': 'success',
+        'successful': 'success',
+        'passed': 'success',
+        'pass': 'success',
+        'ok': 'success',
+        
+        // Fallida/Failed
+        'fallida': 'failure',
+        'fallido': 'failure',
+        'falla': 'failure',
+        'fallo': 'failure',
         'failed': 'failure',
         'failure': 'failure',
+        'error': 'failure',
+        'fail': 'failure',
+        
+        // Pendiente/Pending
+        'pendiente': 'pending',
         'pending': 'pending',
+        'en espera': 'pending',
+        'esperando': 'pending',
+        'waiting': 'pending',
+        'wait': 'pending',
+        
+        // Bloqueada/Blocked
+        'bloqueada': 'blocked',
+        'bloqueado': 'blocked',
+        'bloqueo': 'blocked',
         'blocked': 'blocked',
+        'block': 'blocked',
+        
+        // Planificada/Planned
+        'planificada': 'planned',
+        'planificado': 'planned',
+        'planeada': 'planned',
+        'planeado': 'planned',
         'planned': 'planned',
-        'dismissed': 'dismissed'
+        'plan': 'planned',
+        'por ejecutar': 'planned',
+        
+        // Desestimada/Dismissed
+        'desestimada': 'dismissed',
+        'desestimado': 'dismissed',
+        'desestima': 'dismissed',
+        'dismissed': 'dismissed',
+        'dismiss': 'dismissed',
+        'descartada': 'dismissed',
+        'descartado': 'dismissed',
+        'cancelada': 'dismissed',
+        'cancelado': 'dismissed'
     };
     
-    const mappedStatus = statusMap[normalizedStatus];
+    // Intentar mapear primero con el texto completo
+    let mappedStatus = statusPatterns[normalizedStatus];
+    
+    // Si no encuentra coincidencia, intentar con la versión singular
+    if (!mappedStatus) {
+        mappedStatus = statusPatterns[singularStatus];
+    }
+    
+    // Si aún no hay coincidencia, intentar buscar si alguna palabra clave está contenida
+    if (!mappedStatus) {
+        for (const [key, value] of Object.entries(statusPatterns)) {
+            if (normalizedStatus.includes(key) || key.includes(normalizedStatus)) {
+                mappedStatus = value;
+                break;
+            }
+        }
+    }
     
     if (!mappedStatus) {
-        console.warn(`⚠️ ESTADO DESCONOCIDO: "${status}" - NO SE MAPEA A NINGÚN ESTADO CONOCIDO`);
+        console.warn(`⚠️ ESTADO DESCONOCIDO: "${status}" - NO SE MAPEA A NINGÚN ESTADO CONOCIDO (será considerado como PENDING)`);
         return 'pending'; // Por defecto, estado desconocido se considera pendiente, no planificado
     }
     
