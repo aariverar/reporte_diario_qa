@@ -1321,7 +1321,7 @@ function updateDefectCycleTimeChart(defectsData) {
         displayModeBar: false
     };
 
-    console.log('📊 Renderizando gráfico de barras Defect Cycle Time');
+    console.log('📊 Renderizando gráfico de barras Time To Fix');
     Plotly.newPlot('burndownChart', [barTrace, objectiveLine], layout, config);
 }
 
