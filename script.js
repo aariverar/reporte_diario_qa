@@ -415,6 +415,8 @@ function initializeDashboard() {
     document.getElementById('qaResponsible').textContent = testData.projectInfo.qaResponsible;
     document.getElementById('projectStartDate').textContent = testData.projectInfo.startDate;
     document.getElementById('projectEndDate').textContent = testData.projectInfo.endDate;
+    document.getElementById('projectStartDateReal').textContent = testData.projectInfo.startDateReal || '-';
+    document.getElementById('projectEndDateReal').textContent = testData.projectInfo.endDateReal || '-';
     document.getElementById('projectStatusDetail').textContent = testData.projectInfo.status;
     document.getElementById('reportStartDate').textContent = testData.projectInfo.startDate;
     document.getElementById('reportEndDate').textContent = testData.projectInfo.endDate;
@@ -3642,6 +3644,8 @@ function transformMultiProjectData(data) {
             qaResponsible: data.proyecto.responsable_qa,
             startDate: formatDateForDashboard(data.proyecto.fecha_inicio),
             endDate: formatDateForDashboard(data.proyecto.fecha_fin),
+            startDateReal: formatDateForDashboard(data.proyecto.fecha_inicio_real),
+            endDateReal: formatDateForDashboard(data.proyecto.fecha_fin_real),
             status: data.proyecto.estado_proyecto,
             progress: 0,  // Se calculará automáticamente basado en pruebas exitosas
             // Campos de entregables (semáforo)
