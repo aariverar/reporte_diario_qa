@@ -418,6 +418,14 @@ function initializeDashboard() {
     document.getElementById('projectStartDateReal').textContent = testData.projectInfo.startDateReal || '-';
     document.getElementById('projectEndDateReal').textContent = testData.projectInfo.endDateReal || '-';
     document.getElementById('projectStatusDetail').textContent = testData.projectInfo.status;
+    
+    // Calcular y mostrar cantidad total de casos de prueba (suma de todos los estados)
+    const totalTestCases = (testData.summary.successful || 0) + 
+                          (testData.summary.failed || 0) + 
+                          (testData.summary.pending || 0) + 
+                          (testData.summary.blocked || 0);
+    document.getElementById('totalTestCases').textContent = totalTestCases;
+    
     document.getElementById('reportStartDate').textContent = testData.projectInfo.startDate;
     document.getElementById('reportEndDate').textContent = testData.projectInfo.endDate;
     
