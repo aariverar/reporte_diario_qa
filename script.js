@@ -484,11 +484,10 @@ function initializeDashboard() {
             break;
     }
 
-    // Calcular el total de pruebas (todos los estados)
+    // Calcular el total de pruebas (todos los estados excepto desestimadas)
     const blockedCount = testData.summary.blocked || 0;
-    const dismissedCount = testData.summary.dismissed || 0;
     const totalTests = testData.summary.planned + testData.summary.successful + 
-                      testData.summary.failed + testData.summary.pending + blockedCount + dismissedCount;
+                      testData.summary.failed + testData.summary.pending + blockedCount;
     
     // Actualizar KPIs con la nueva lógica
     document.getElementById('plannedTests').textContent = testData.summary.planned;
@@ -500,16 +499,12 @@ function initializeDashboard() {
     // Actualizar pruebas bloqueadas
     document.getElementById('blockedTests').textContent = blockedCount;
     
-    // Actualizar pruebas desestimadas
-    document.getElementById('dismissedTests').textContent = dismissedCount;
-    
     console.log('🎯 ACTUALIZANDO ELEMENTOS DOM:');
     console.log(`   • Planificadas: ${testData.summary.planned}`);
     console.log(`   • Exitosas: ${testData.summary.successful}`);
     console.log(`   • Fallidas: ${testData.summary.failed}`);
     console.log(`   • Pendientes: ${testData.summary.pending}`);
     console.log(`   • Bloqueadas: ${blockedCount}`);
-    console.log(`   • DESESTIMADAS: ${dismissedCount}`);
     console.log(`   • Total: ${totalTests}`);
     
     // Actualizar porcentajes basados en la nueva lógica de progreso
@@ -523,13 +518,12 @@ function updateKPIProgressPercentages(totalTests) {
         return;
     }
     
-    // Calcular porcentajes del total para cada tipo
+    // Calcular porcentajes del total para cada tipo (sin desestimadas)
     const plannedPercentage = (testData.summary.planned / totalTests) * 100;
     const successfulPercentage = (testData.summary.successful / totalTests) * 100;
     const failedPercentage = (testData.summary.failed / totalTests) * 100;
     const pendingPercentage = (testData.summary.pending / totalTests) * 100;
     const blockedPercentage = ((testData.summary.blocked || 0) / totalTests) * 100;
-    const dismissedPercentage = ((testData.summary.dismissed || 0) / totalTests) * 100;
     
     // Actualizar elementos en el DOM con la nueva lógica
     updateProgressPercentageElement('plannedTests', plannedPercentage, 'planned');
@@ -537,7 +531,6 @@ function updateKPIProgressPercentages(totalTests) {
     updateProgressPercentageElement('failedTests', failedPercentage, 'failed');
     updateProgressPercentageElement('pendingTests', pendingPercentage, 'pending');
     updateProgressPercentageElement('blockedTests', blockedPercentage, 'blocked');
-    updateProgressPercentageElement('dismissedTests', dismissedPercentage, 'dismissed');
 }
 
 // Función para actualizar un elemento de porcentaje con lógica de progreso
