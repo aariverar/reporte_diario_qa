@@ -420,7 +420,8 @@ function initializeDashboard() {
     document.getElementById('projectStatusDetail').textContent = testData.projectInfo.status;
     
     // Calcular y mostrar cantidad total de casos de prueba (suma de todos los estados)
-    const totalTestCases = (testData.summary.successful || 0) + 
+    const totalTestCases = (testData.summary.planned || 0) +
+                          (testData.summary.successful || 0) + 
                           (testData.summary.failed || 0) + 
                           (testData.summary.pending || 0) + 
                           (testData.summary.blocked || 0);
