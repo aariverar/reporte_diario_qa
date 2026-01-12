@@ -17,7 +17,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <div class="dashboard">
@@ -72,10 +71,11 @@
             <!-- Project Information -->
             <section class="project-section">
                 <div class="project-details-card">
-                    <div class="project-header">
+                    <div class="project-header collapsible-header" onclick="toggleProjectInfo()">
                         <h3><i class="fas fa-project-diagram"></i> Información del Proyecto</h3>
+                        <i class="fas fa-chevron-down toggle-icon" id="projectInfoToggle"></i>
                     </div>
-                    <div class="project-details-grid">
+                    <div class="project-details-grid collapsible-content" id="projectInfoContent">
                         <div class="detail-item">
                             <label>Nombre del Proyecto:</label>
                             <span id="projectNameDetail">Building Block - Core</span>
@@ -141,8 +141,16 @@
                 </div>
             </section>
 
-            <!-- KPI Cards -->
-            <section class="kpi-section">
+            <!-- Indicadores de Ejecución (Collapsible) -->
+            <section class="indicators-section">
+                <div class="indicators-container">
+                    <div class="project-header collapsible-header" onclick="toggleIndicators()">
+                        <h3><i class="fas fa-chart-line"></i> Indicadores de Ejecución</h3>
+                        <i class="fas fa-chevron-down toggle-icon" id="indicatorsToggle"></i>
+                    </div>
+                    <div class="collapsible-content" id="indicatorsContent">
+                        <!-- KPI Cards -->
+                        <section class="kpi-section">
                 <div class="kpi-card planned">
                     <div class="kpi-icon">
                         <i class="fas fa-calendar-check"></i>
@@ -209,8 +217,8 @@
                 </div>
             </section>
 
-            <!-- Charts Section -->
-            <section class="charts-section">
+                <!-- Charts Grid -->
+                <div class="charts-grid">
                 <!-- Test Results Overview -->
                 <div class="chart-container">
                     <button class="chart-expand-btn" onclick="expandChart('pie', 'Resumen de Resultados')" title="Ver ampliado">
@@ -250,7 +258,21 @@
                     </div>
                     <div id="categoryChart" class="chart"></div>
                 </div>
+                </div><!-- End charts-grid -->
+                    </div><!-- End collapsible-content -->
+                </div><!-- End indicators-container -->
+            </section><!-- End indicators-section -->
 
+            <!-- Indicadores de Defectos (Collapsible) -->
+            <section class="defects-indicators-section">
+                <div class="defects-indicators-container">
+                    <div class="project-header collapsible-header" onclick="toggleDefectsIndicators()">
+                        <h3><i class="fas fa-bug"></i> Indicadores de Defectos</h3>
+                        <i class="fas fa-chevron-down toggle-icon" id="defectsIndicatorsToggle"></i>
+                    </div>
+                    <div class="collapsible-content" id="defectsIndicatorsContent">
+                        <!-- Charts Grid -->
+                        <div class="charts-grid">
                 <!-- Defects Management -->
                 <div class="chart-container">
                     <button class="chart-expand-btn" onclick="expandChart('defects', 'Gestión de Defectos')" title="Ver ampliado">
@@ -300,7 +322,21 @@
                     </div>
                     <div id="coverageChart" class="chart"></div>
                 </div>
+                        </div><!-- End charts-grid -->
+                    </div><!-- End collapsible-content -->
+                </div><!-- End defects-indicators-container -->
+            </section><!-- End defects-indicators-section -->
 
+            <!-- Productividad del Equipo QA (Collapsible) -->
+            <section class="productivity-section">
+                <div class="productivity-container">
+                    <div class="project-header collapsible-header" onclick="toggleProductivity()">
+                        <h3><i class="fas fa-users"></i> Productividad del Equipo QA</h3>
+                        <i class="fas fa-chevron-down toggle-icon" id="productivityToggle"></i>
+                    </div>
+                    <div class="collapsible-content" id="productivityContent">
+                        <!-- Charts Grid -->
+                        <div class="charts-grid">
                 <!-- Daily Execution by Tester Chart -->
                 <div class="chart-container">
                     <button class="chart-expand-btn" onclick="expandChart('dailyExecution', 'Ejecución Diaria por Ejecutor')" title="Ver ampliado">
@@ -337,7 +373,10 @@
                     </div>
                     <div id="deliverablesChart" class="chart"></div>
                 </div>
-            </section>
+                        </div><!-- End charts-grid -->
+                    </div><!-- End collapsible-content -->
+                </div><!-- End productivity-container -->
+            </section><!-- End productivity-section -->
 
             <!-- Defects Details Table -->
             <section class="table-section defects-details">
@@ -568,6 +607,72 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Función para toggle de Información del Proyecto
+        function toggleProjectInfo() {
+            const content = document.getElementById('projectInfoContent');
+            const icon = document.getElementById('projectInfoToggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+
+        // Función para toggle de Indicadores de Ejecución
+        function toggleIndicators() {
+            const content = document.getElementById('indicatorsContent');
+            const icon = document.getElementById('indicatorsToggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+
+        // Función para toggle de Indicadores de Defectos
+        function toggleDefectsIndicators() {
+            const content = document.getElementById('defectsIndicatorsContent');
+            const icon = document.getElementById('defectsIndicatorsToggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+
+        // Función para toggle de Productividad del Equipo QA
+        function toggleProductivity() {
+            const content = document.getElementById('productivityContent');
+            const icon = document.getElementById('productivityToggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+    </script>
 
     <script src="script.js?v=20251103"></script>
 </body>

@@ -237,7 +237,7 @@ body::before {
 
 /* Project Information Section */
 .project-section {
-    margin-bottom: 0;
+    margin-bottom: 0.5rem;
 }
 
 .project-details-card {
@@ -255,6 +255,38 @@ body::before {
     margin-bottom: 0.3rem;
     padding-bottom: 0.3rem;
     border-bottom: 1px solid var(--border-color);
+}
+
+.project-header.collapsible-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.project-header.collapsible-header:hover {
+    background-color: rgba(59, 130, 246, 0.05);
+    border-radius: 6px;
+}
+
+.toggle-icon {
+    color: var(--primary-color);
+    font-size: 0.875rem;
+    transition: transform 0.3s ease;
+}
+
+.collapsible-content {
+    max-height: 2000px;
+    overflow: visible;
+    transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease;
+    opacity: 1;
+}
+
+.collapsible-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
 }
 
 .project-header h3 {
@@ -455,6 +487,136 @@ body::before {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+}
+
+/* Indicators Section (Collapsible) */
+.indicators-section {
+    margin-bottom: 0.5rem;
+}
+
+.indicators-container {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 1rem;
+    border-left: 4px solid var(--primary-color);
+}
+
+.indicators-container .project-header {
+    margin-bottom: 1rem;
+}
+
+.indicators-container .collapsible-content {
+    max-height: 15000px;
+    overflow: visible;
+    transition: max-height 0.5s ease-in-out, opacity 0.4s ease, padding 0.3s ease;
+    opacity: 1;
+}
+
+.indicators-container .collapsible-content.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.indicators-container .kpi-section {
+    margin-bottom: 1rem;
+}
+
+.indicators-container .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1rem;
+}
+
+.indicators-container .chart-container {
+    margin-bottom: 0;
+}
+
+/* Defects Indicators Section (Collapsible) */
+.defects-indicators-section {
+    margin-bottom: 0.5rem;
+}
+
+.defects-indicators-container {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 1rem;
+    border-left: 4px solid #dc2626;
+}
+
+.defects-indicators-container .project-header {
+    margin-bottom: 1rem;
+}
+
+.defects-indicators-container .collapsible-content {
+    max-height: 15000px;
+    overflow: visible;
+    transition: max-height 0.5s ease-in-out, opacity 0.4s ease, padding 0.3s ease;
+    opacity: 1;
+}
+
+.defects-indicators-container .collapsible-content.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.defects-indicators-container .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1rem;
+}
+
+.defects-indicators-container .chart-container {
+    margin-bottom: 0;
+}
+
+/* Productivity Section (Collapsible) */
+.productivity-section {
+    margin-bottom: 0.5rem;
+}
+
+.productivity-container {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 1rem;
+    border-left: 4px solid #16a34a;
+}
+
+.productivity-container .project-header {
+    margin-bottom: 1rem;
+}
+
+.productivity-container .collapsible-content {
+    max-height: 15000px;
+    overflow: visible;
+    transition: max-height 0.5s ease-in-out, opacity 0.4s ease, padding 0.3s ease;
+    opacity: 1;
+}
+
+.productivity-container .collapsible-content.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.productivity-container .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1rem;
+}
+
+.productivity-container .chart-container {
+    margin-bottom: 0;
 }
 
 /* KPI Cards */

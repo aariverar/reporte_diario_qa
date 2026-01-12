@@ -226,10 +226,6 @@ function calculateProjectProgress() {
         return isNaN(date.getTime()) ? null : date;
     }
     
-    // Fecha objetivo: fecha actual del sistema
-    const fechaObjetivo = new Date();
-    console.log(`🗓️ CÁLCULO % REAL - Buscar % Real para fecha: ${fechaObjetivo.toISOString().split('T')[0]} (${fechaObjetivo.toLocaleDateString('es-ES', { weekday: 'long' })})`);
-    
     // Ordenar tendencia por fecha
     const trendSorted = [...testData.trend].sort((a, b) => {
         const dateA = parseDateDDMMYYYY(a.date);
@@ -237,81 +233,39 @@ function calculateProjectProgress() {
         return dateA && dateB ? dateA - dateB : 0;
     });
     
-    // Buscar % Real directamente de la columna "% Real" de Tendencia_Historica
+    // CAMBIO IMPORTANTE: El progreso real es simplemente el último valor de la tendencia
+    // que representa el estado ACTUAL del proyecto basado en las pruebas ejecutadas
+    // No lo limitamos por fecha actual porque queremos ver el progreso real acumulado
     let realProgress = 0.0;
-    let ultimaFechaIncluida = null;
+    let ultimaFecha = null;
     
-    // Buscar el último día que sea <= fecha actual y que tenga % Real
-    trendSorted.forEach((dayData, index) => {
-        const dayDate = parseDateDDMMYYYY(dayData.date);
-        if (!dayDate) {
-            console.warn(`⚠️ Saltando fila ${index + 1}: No se pudo parsear fecha "${dayData.date}"`);
-            return;
-        }
-        
-        const isIncluded = dayDate <= fechaObjetivo;
+    // Buscar el último día con % Real > 0
+    for (let i = trendSorted.length - 1; i >= 0; i--) {
+        const dayData = trendSorted[i];
         const porcentajeReal = parseFloat(dayData.realProgress || dayData.real_progress || 0);
-        const fechaFormateada = dayDate.toISOString().split('T')[0];
-        const diaSemana = dayDate.toLocaleDateString('es-ES', { weekday: 'long' });
         
-        console.log(`  Fila ${index + 1}: ${dayData.date} (${diaSemana}) -> % Real: ${porcentajeReal}%`);
-        console.log(`    Comparación: ${fechaFormateada} <= ${fechaObjetivo.toISOString().split('T')[0]} = ${isIncluded} ${isIncluded ? '✅ INCLUIR' : '❌ EXCLUIR'}`);
-        
-        if (isIncluded && porcentajeReal > 0) {
+        if (porcentajeReal > 0) {
             realProgress = porcentajeReal;
-            ultimaFechaIncluida = dayData.date;
+            ultimaFecha = dayData.date;
+            break;
         }
-    });
+    }
     
-    console.log(`📊 % REAL DESDE COLUMNA TENDENCIA_HISTORICA:`);
-    console.log(`   • FECHA OBJETIVO: ${fechaObjetivo.toISOString().split('T')[0]} (${fechaObjetivo.toLocaleDateString('es-ES', { weekday: 'long' })})`);
-    console.log(`   • ÚLTIMA FECHA INCLUIDA: ${ultimaFechaIncluida}`);
-    console.log(`   • % Real encontrado: ${realProgress}%`);
-    console.log(`💡 LECTURA DIRECTA DESDE COLUMNA % REAL DEL EXCEL`);
+    console.log(`📊 PROGRESO REAL ACTUAL DEL PROYECTO:`);
+    console.log(`   • ÚLTIMA FECHA CON EJECUCIONES: ${ultimaFecha}`);
+    console.log(`   • % Real acumulado: ${realProgress}%`);
+    console.log(`   • Total de días en tendencia: ${trendSorted.length}`);
+    console.log(`   💡 Progreso basado en: (Exitosas + Fallidas) / Total Pruebas × 100`);
     
     return realProgress;
 }
 
-// Función para calcular el progreso planificado basado en tendencia histórica
+// Función para calcular el progreso planificado basado en fechas planificadas y total de casos
 function calculatePlannedProgress() {
-    if (!testData.trend || testData.trend.length === 0) {
-        console.warn('⚠️ No hay datos de tendencia histórica para progreso planificado');
-        return 0;
+    if (!testData.projectInfo) {
+        console.warn('⚠️ No hay información del proyecto disponible');
+        return 0.0;
     }
-    
-    // Obtener la fecha actual para comparar con los días de la tendencia
-    const today = new Date();
-    console.log(`🗓️ CÁLCULO % PLANIFICADO - Fórmula Excel: SUMA($C$2:C_actual)/SUMA($C$2:$C_último)*100`);
-    console.log(`🗓️ FECHA ACTUAL SISTEMA: ${today.toISOString().split('T')[0]} (${today.toLocaleDateString()})`);
-    console.log(`🗓️ FECHA ACTUAL EN MILISEGUNDOS: ${today.getTime()}`);
-    console.log(`🗓️ DÍA DE LA SEMANA: ${today.toLocaleDateString('es-ES', { weekday: 'long' })}`);
-    
-    // Ordenar tendencia por fecha para procesamiento secuencial
-    const trendSorted = [...testData.trend].sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    console.log(`📋 DATOS DE TENDENCIA ENCONTRADOS (${trendSorted.length} registros):`);
-    trendSorted.forEach((day, index) => {
-        console.log(`  ${index + 1}: Fecha raw: "${day.date}" (tipo: ${typeof day.date}) | Planificadas: ${day.planned || 0}`);
-        const dayDate = parseDateDDMMYYYY(day.date);
-        if (!dayDate) {
-            console.log(`    ❌ NO SE PUDO PARSEAR (formato esperado: dd/MM/yyyy)`);
-        } else {
-            console.log(`    ✅ Fecha parseada: ${dayDate.toLocaleDateString('es-ES', { weekday: 'long' })} -> ${dayDate.toISOString().split('T')[0]}`);
-        }
-    });
-    
-    // PASO 1: Calcular SUMA($C$2:$C_último) - Total planificadas de todo el proyecto
-    let totalPlanificadasProyecto = 0;
-    trendSorted.forEach(dayData => {
-        totalPlanificadasProyecto += dayData.planned || 0;
-    });
-    
-    // PASO 2: Calcular SUMA($C$2:C_actual) - Acumulado hasta fecha actual o más cercana
-    let sumaPlanificadasAcumulada = 0;
-    let ultimaFechaIncluida = null;
-    let fechaObjetivo = new Date(); // CORRECCIÓN: Usar fecha actual del sistema
-    
-    console.log(`🎯 BUSCANDO DATOS HASTA: ${fechaObjetivo.toISOString().split('T')[0]} (${fechaObjetivo.toLocaleDateString('es-ES', { weekday: 'long' })})`);
     
     // Función para parsear fechas en formato dd/MM/yyyy
     function parseDateDDMMYYYY(dateStr) {
@@ -330,72 +284,56 @@ function calculatePlannedProgress() {
         return isNaN(date.getTime()) ? null : date;
     }
     
-    // Buscar la fecha exacta o la más cercana anterior a la fecha actual
-    let fechaEncontrada = null;
-    const fechaObjetivoStr = fechaObjetivo.toISOString().split('T')[0];
-    trendSorted.forEach((dayData) => {
-        const dayDate = parseDateDDMMYYYY(dayData.date);
-        if (dayDate && dayDate.toISOString().split('T')[0] === fechaObjetivoStr) {
-            fechaEncontrada = dayData.date;
-            console.log(`🎉 ENCONTRADA FECHA EXACTA: ${dayData.date}`);
-        }
-    });
+    // Obtener fechas planificadas del proyecto
+    const fechaInicioPlanificado = parseDateDDMMYYYY(testData.projectInfo.startDate);
+    const fechaCierrePlanificado = parseDateDDMMYYYY(testData.projectInfo.endDate);
     
-    if (!fechaEncontrada) {
-        console.log(`⚠️ No se encontró datos para ${fechaObjetivoStr}, buscando fecha más cercana anterior...`);
-        // Buscar la fecha más cercana anterior a la fecha actual
-        let fechasCercanas = trendSorted.filter(dayData => {
-            const dayDate = parseDateDDMMYYYY(dayData.date);
-            return dayDate && dayDate <= fechaObjetivo;
-        });
-        if (fechasCercanas.length > 0) {
-            fechaEncontrada = fechasCercanas[fechasCercanas.length - 1].date;
-            console.log(`📅 USANDO FECHA MÁS CERCANA: ${fechaEncontrada}`);
-        }
+    if (!fechaInicioPlanificado || !fechaCierrePlanificado) {
+        console.warn('⚠️ Fechas planificadas no válidas');
+        return 0.0;
     }
     
-    trendSorted.forEach((dayData, index) => {
-        const dayDate = parseDateDDMMYYYY(dayData.date);
-        const planificadasDelDia = dayData.planned || 0;
-        
-        // Validar que la fecha sea válida
-        if (!dayDate) {
-            console.warn(`⚠️ Saltando fila ${index + 1}: No se pudo parsear fecha "${dayData.date}"`);
-            return;
-        }
-        
-        const isIncluded = dayDate <= fechaObjetivo;
-        const fechaFormateada = dayDate.toISOString().split('T')[0];
-        const diaSemana = dayDate.toLocaleDateString('es-ES', { weekday: 'long' });
-        
-        console.log(`  Fila ${index + 1}: ${dayData.date} (${diaSemana}) -> Planificadas: ${planificadasDelDia}`);
-        console.log(`    Comparación: ${fechaFormateada} <= ${fechaObjetivoStr} = ${isIncluded} ${isIncluded ? '✅ INCLUIR' : '❌ EXCLUIR'}`);
-        
-        if (isIncluded) {
-            sumaPlanificadasAcumulada += planificadasDelDia;
-            ultimaFechaIncluida = dayData.date;
-        }
-    });
+    // Calcular días laborables (lunes a viernes) entre fechas planificadas
+    const diasLaborablesPlanificados = generateWorkdays(fechaInicioPlanificado, fechaCierrePlanificado);
+    const totalDiasLaborables = diasLaborablesPlanificados.length;
     
-    if (totalPlanificadasProyecto === 0) {
-        console.warn('⚠️ Total de planificadas del proyecto es 0');
-        return 0;
+    if (totalDiasLaborables === 0) {
+        console.warn('⚠️ No hay días laborables en el rango planificado');
+        return 0.0;
     }
     
-    // PASO 3: Aplicar fórmula Excel: SUMA($C$2:C_actual)/SUMA($C$2:$C_último)*100
-    const plannedProgress = parseFloat(((sumaPlanificadasAcumulada / totalPlanificadasProyecto) * 100).toFixed(1));
+    // Obtener total de casos de prueba del proyecto
+    const totalCasosPrueba = testData.projectInfo.totalTestCases || 0;
     
-    console.log(`� PROGRESO PLANIFICADO (TENDENCIA_HISTORICA):`);
-    console.log(`   • FECHA OBJETIVO: ${fechaObjetivoStr} (${fechaObjetivo.toLocaleDateString('es-ES', { weekday: 'long' })})`);
-    console.log(`   • ÚLTIMA FECHA INCLUIDA: ${ultimaFechaIncluida}`);
-    console.log(`   • SUMA($C$2:C_actual) hasta ${ultimaFechaIncluida}: ${sumaPlanificadasAcumulada}`);
-    console.log(`   • SUMA($C$2:$C_último) total proyecto: ${totalPlanificadasProyecto}`);
-    console.log(`   • % Planificado: ${plannedProgress}% = (${sumaPlanificadasAcumulada}/${totalPlanificadasProyecto}) * 100`);
-    console.log(`   • Filas procesadas: ${trendSorted.length}`);
-    console.log(`   • RESULTADO ACTUAL: ${plannedProgress}%`);
-    console.log(`💡 CÁLCULO DINÁMICO BASADO EN FECHA ACTUAL DEL SISTEMA`);
+    if (totalCasosPrueba === 0) {
+        console.warn('⚠️ Total de casos de prueba es 0');
+        return 0.0;
+    }
     
-    return plannedProgress;
+    // Calcular MEDIANA diaria (casos por día para lograr el objetivo)
+    const medianaDiaria = totalCasosPrueba / totalDiasLaborables;
+    
+    // Calcular cuántos días laborables han transcurrido hasta HOY
+    const fechaActual = new Date();
+    const diasTranscurridos = diasLaborablesPlanificados.filter(dia => dia <= fechaActual).length;
+    
+    // Calcular progreso planificado esperado = (días transcurridos / total días) * 100
+    const progressPlanificado = (diasTranscurridos / totalDiasLaborables) * 100;
+    
+    console.log(`📊 PROGRESO PLANIFICADO (Basado en fechas planificadas):`);
+    console.log(`   • Fecha Inicio Planificado: ${testData.projectInfo.startDate}`);
+    console.log(`   • Fecha Cierre Planificado: ${testData.projectInfo.endDate}`);
+    console.log(`   • Total días laborables planificados: ${totalDiasLaborables}`);
+    console.log(`   • Total casos de prueba: ${totalCasosPrueba}`);
+    console.log(`   • MEDIANA DIARIA: ${medianaDiaria.toFixed(2)} casos/día`);
+    console.log(`   • Días laborables transcurridos hasta HOY: ${diasTranscurridos}`);
+    console.log(`   • % Planificado: ${progressPlanificado.toFixed(1)}% = (${diasTranscurridos}/${totalDiasLaborables}) * 100`);
+    console.log(`   💡 Fórmula: (Días transcurridos / Total días) × 100`);
+    
+    // Guardar la mediana para usarla en el gráfico
+    testData.medianaDiaria = medianaDiaria;
+    
+    return parseFloat(progressPlanificado.toFixed(1));
 }
 
 // Inicializar dashboard
@@ -426,6 +364,9 @@ function initializeDashboard() {
                           (testData.summary.pending || 0) + 
                           (testData.summary.blocked || 0);
     document.getElementById('totalTestCases').textContent = totalTestCases;
+    
+    // IMPORTANTE: Guardar en testData.projectInfo para que calculatePlannedProgress() pueda acceder
+    testData.projectInfo.totalTestCases = totalTestCases;
     
     document.getElementById('reportStartDate').textContent = testData.projectInfo.startDate;
     document.getElementById('reportEndDate').textContent = testData.projectInfo.endDate;
@@ -772,82 +713,56 @@ function createPieChart() {
     Plotly.newPlot('pieChart', data, layout, config);
 }
 
-// Gráfica de tendencia - Desde fecha de inicio hasta fecha de fin del proyecto
+// Gráfica de tendencia - Basada en fechas reales de ejecución
 function createTrendChart() {
-    // Convertir fechas del proyecto de DD/MM/YYYY a YYYY-MM-DD para comparación
-    const projectStartDate = testData.projectInfo.startDate.split('/').reverse().join('-');
-    const projectEndDate = testData.projectInfo.endDate.split('/').reverse().join('-');
-    
-    // Filtrar datos de tendencia según las fechas del proyecto
-    const filteredTrendData = testData.trend.filter(d => {
-        return d.date >= projectStartDate && d.date <= projectEndDate;
-    });
-    
-    // Si no hay datos filtrados, usar todos los datos disponibles
-    const trendData = filteredTrendData.length > 0 ? filteredTrendData : testData.trend;
+    // Usar directamente los datos de tendencia generados (ya vienen con el rango correcto)
+    // La tendencia se genera en generateTrendFromDetails() basada en fechas reales de dia_ejecutado
+    const trendData = testData.trend;
     const dates = trendData.map(d => d.date);
     
-    const plannedTrace = {
+    // Agregar línea de MEDIANA (casos DIARIOS que se deben ejecutar)
+    // Es una línea HORIZONTAL constante para referencia visual
+    const medianaTrace = {
         x: dates,
-        y: trendData.map(d => d.planned),
+        y: dates.map(() => testData.medianaDiaria || 0),
         type: 'scatter',
-        mode: 'lines+markers',
-        name: 'Planificadas',
-        line: { color: colors.warning, width: 2, dash: 'dash' },
-        marker: { size: 5 }
-    };
-    
-    const successTrace = {
-        x: dates,
-        y: trendData.map(d => d.successful),
-        type: 'scatter',
-        mode: 'lines+markers',
-        name: 'Exitosas',
-        line: { color: colors.success, width: 3 },
-        marker: { size: 6 }
+        mode: 'lines',
+        name: 'Meta Diaria',
+        line: { color: '#F59E0B', width: 3, dash: 'dash' },
+        marker: { size: 0 },
+        hovertemplate: 'Meta: %{y:.2f} casos/día<extra></extra>'
     };
 
-    const failureTrace = {
+    // Calcular casos completados POR DÍA (exitosas + fallidas del día, no acumulado)
+    const casosPorDia = trendData.map((d, index) => {
+        if (index === 0) {
+            // Primer día: son las exitosas + fallidas del día
+            return (d.successful || 0) + (d.failed || 0);
+        } else {
+            // Días siguientes: diferencia con el día anterior
+            const exitosasHoy = (d.successful || 0) - (trendData[index - 1].successful || 0);
+            const fallidasHoy = (d.failed || 0) - (trendData[index - 1].failed || 0);
+            return exitosasHoy + fallidasHoy;
+        }
+    });
+
+    // Traza de casos ejecutados por día como gráfico de área (montaña)
+    const casosEjecutadosDiaTrace = {
         x: dates,
-        y: trendData.map(d => d.failed),
+        y: casosPorDia,
         type: 'scatter',
-        mode: 'lines+markers',
-        name: 'Fallidas',
-        line: { color: colors.danger, width: 3 },
-        marker: { size: 6 }
+        mode: 'lines',
+        name: 'Ejecutados/Día',
+        fill: 'tozeroy',  // Relleno hasta el eje Y (efecto montaña)
+        line: { 
+            color: '#3B82F6',  // Azul
+            width: 2
+        },
+        fillcolor: 'rgba(59, 130, 246, 0.3)',  // Azul con transparencia
+        hovertemplate: 'Ejecutados: %{y} casos<extra></extra>'
     };
 
-    const pendingTrace = {
-        x: dates,
-        y: trendData.map(d => d.pending),
-        type: 'scatter',
-        mode: 'lines+markers',
-        name: 'Pendientes',
-        line: { color: colors.pending, width: 3 },
-        marker: { size: 6 }
-    };
-
-    const blockedTrace = {
-        x: dates,
-        y: trendData.map(d => d.blocked || 0),
-        type: 'scatter',
-        mode: 'lines+markers',
-        name: 'Bloqueadas',
-        line: { color: '#6B7280', width: 3 },
-        marker: { size: 6 }
-    };
-
-    const dismissedTrace = {
-        x: dates,
-        y: trendData.map(d => d.dismissed || 0),
-        type: 'scatter',
-        mode: 'lines+markers',
-        name: 'Desestimadas',
-        line: { color: '#8B8B8B', width: 3 },
-        marker: { size: 6 }
-    };
-
-    const data = [plannedTrace, successTrace, failureTrace, pendingTrace, blockedTrace, dismissedTrace];
+    const data = [medianaTrace, casosEjecutadosDiaTrace];
 
     const layout = {
         margin: { t: 20, b: 40, l: 40, r: 20 },
@@ -860,8 +775,10 @@ function createTrendChart() {
             tickformat: '%m/%d'
         },
         yaxis: {
+            title: 'Cantidad de Casos',
             gridcolor: '#e2e8f0',
-            linecolor: '#e2e8f0'
+            linecolor: '#e2e8f0',
+            titlefont: { size: 11, color: '#64748b' }
         },
         font: {
             family: 'Inter, sans-serif',
@@ -883,78 +800,136 @@ function createCategoryChart() {
     const categories = testData.categories.map(c => c.escenario);
     
     const plannedTrace = {
-        x: categories,
-        y: testData.categories.map(c => c.planned),
+        y: categories,
+        x: testData.categories.map(c => c.planned),
         type: 'bar',
         name: 'Planificadas',
+        orientation: 'h',
         marker: { 
             color: colors.warning,
             opacity: 0.3
+        },
+        text: testData.categories.map(c => c.planned > 0 ? c.planned : ''),
+        textposition: 'inside',
+        insidetextanchor: 'middle',
+        textfont: {
+            color: 'white',
+            size: 12,
+            family: 'Inter, sans-serif',
+            weight: 'bold'
         }
     };
     
     const successTrace = {
-        x: categories,
-        y: testData.categories.map(c => c.successful),
+        y: categories,
+        x: testData.categories.map(c => c.successful),
         type: 'bar',
         name: 'Exitosas',
-        marker: { color: colors.success }
+        orientation: 'h',
+        marker: { color: colors.success },
+        text: testData.categories.map(c => c.successful > 0 ? c.successful : ''),
+        textposition: 'inside',
+        insidetextanchor: 'middle',
+        textfont: {
+            color: 'white',
+            size: 12,
+            family: 'Inter, sans-serif',
+            weight: 'bold'
+        }
     };
 
     const failureTrace = {
-        x: categories,
-        y: testData.categories.map(c => c.failed),
+        y: categories,
+        x: testData.categories.map(c => c.failed),
         type: 'bar',
         name: 'Fallidas',
-        marker: { color: colors.danger }
+        orientation: 'h',
+        marker: { color: colors.danger },
+        text: testData.categories.map(c => c.failed > 0 ? c.failed : ''),
+        textposition: 'inside',
+        insidetextanchor: 'middle',
+        textfont: {
+            color: 'white',
+            size: 12,
+            family: 'Inter, sans-serif',
+            weight: 'bold'
+        }
     };
 
     const pendingTrace = {
-        x: categories,
-        y: testData.categories.map(c => c.pending),
+        y: categories,
+        x: testData.categories.map(c => c.pending),
         type: 'bar',
         name: 'Pendientes',
-        marker: { color: colors.pending }
+        orientation: 'h',
+        marker: { color: colors.pending },
+        text: testData.categories.map(c => c.pending > 0 ? c.pending : ''),
+        textposition: 'inside',
+        insidetextanchor: 'middle',
+        textfont: {
+            color: 'white',
+            size: 12,
+            family: 'Inter, sans-serif',
+            weight: 'bold'
+        }
     };
 
     const blockedTrace = {
-        x: categories,
-        y: testData.categories.map(c => c.blocked || 0),
+        y: categories,
+        x: testData.categories.map(c => c.blocked || 0),
         type: 'bar',
         name: 'Bloqueadas',
-        marker: { color: '#6B7280' }
+        orientation: 'h',
+        marker: { color: '#6B7280' },
+        text: testData.categories.map(c => (c.blocked || 0) > 0 ? c.blocked : ''),
+        textposition: 'inside',
+        insidetextanchor: 'middle',
+        textfont: {
+            color: 'white',
+            size: 12,
+            family: 'Inter, sans-serif',
+            weight: 'bold'
+        }
     };
 
-    const dismissedTrace = {
-        x: categories,
-        y: testData.categories.map(c => c.dismissed || 0),
-        type: 'bar',
-        name: 'Desestimadas',
-        marker: { color: '#8B8B8B' }
-    };
+    const data = [plannedTrace, successTrace, failureTrace, pendingTrace, blockedTrace];
 
-    const data = [plannedTrace, successTrace, failureTrace, pendingTrace, blockedTrace, dismissedTrace];
+    // Calcular altura dinámica basada en número de categorías
+    // Mínimo 40px por categoría para buena legibilidad
+    const minHeightPerCategory = 40;
+    const calculatedHeight = Math.max(300, categories.length * minHeightPerCategory);
 
     const layout = {
         barmode: 'stack',
-        margin: { t: 20, b: 80, l: 40, r: 20 },
+        height: calculatedHeight,
+        margin: { t: 20, b: 60, l: 200, r: 40 },
         showlegend: false,
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
         xaxis: {
+            title: '',
             gridcolor: '#e2e8f0',
             linecolor: '#e2e8f0',
-            tickangle: -45
+            fixedrange: false
         },
         yaxis: {
+            title: '',
             gridcolor: '#e2e8f0',
-            linecolor: '#e2e8f0'
+            linecolor: '#e2e8f0',
+            automargin: true,
+            fixedrange: false,
+            tickfont: {
+                size: 11,
+                family: 'Inter, sans-serif'
+            }
         },
         font: {
             family: 'Inter, sans-serif',
             size: 11,
             color: '#64748b'
-        }
+        },
+        bargap: 0.2,
+        bargroupgap: 0.1
     };
 
     const config = {
@@ -1033,6 +1008,54 @@ function createDefectsChart() {
     Plotly.newPlot('defectsChart', data, layout, config);
 }
 
+// Función helper global para parsear fechas de Excel de manera robusta
+function parseExcelDate(dateStr) {
+    if (!dateStr || dateStr === '') return null;
+    
+    let date;
+    
+    // Si es un número (fecha serial de Excel)
+    if (typeof dateStr === 'number') {
+        const excelEpoch = new Date(1900, 0, 1);
+        const millisecondsPerDay = 24 * 60 * 60 * 1000;
+        let adjustedDays = dateStr;
+        if (dateStr > 59) {
+            adjustedDays = dateStr - 1;
+        }
+        date = new Date(excelEpoch.getTime() + (adjustedDays - 1) * millisecondsPerDay);
+    }
+    // Si es un string
+    else if (typeof dateStr === 'string') {
+        // Formato DD/MM/AAAA HH:MM
+        if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}$/)) {
+            const [datePart, timePart] = dateStr.split(/\s+/);
+            const [day, month, year] = datePart.split('/').map(Number);
+            const [hour, minute] = timePart.split(':').map(Number);
+            date = new Date(year, month - 1, day, hour, minute);
+        }
+        // Formato DD/MM/AAAA
+        else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+            const [day, month, year] = dateStr.split('/').map(Number);
+            date = new Date(year, month - 1, day);
+        }
+        else {
+            // Intentar parsear directamente
+            date = new Date(dateStr);
+        }
+    }
+    else {
+        date = new Date(dateStr);
+    }
+    
+    // Validar que la fecha sea válida
+    if (isNaN(date.getTime())) {
+        console.warn('📊 No se pudo parsear la fecha:', dateStr);
+        return null;
+    }
+    
+    return date;
+}
+
 // Función para actualizar Burndown Chart
 function updateDefectCycleTimeChart(defectsData) {
     if (!defectsData || !defectsData.details || defectsData.details.length === 0) {
@@ -1075,57 +1098,9 @@ function updateDefectCycleTimeChart(defectsData) {
         return;
     }
 
-    console.log('� Datos de defectos para cycle time:', defectsData);
+    console.log('📊 Datos de defectos para cycle time:', defectsData);
 
-    // Función helper para parsear fechas de manera más robusta
-    function parseExcelDate(dateStr) {
-        if (!dateStr || dateStr === '') return null;
-        
-        let date;
-        
-        // Si es un número (fecha serial de Excel)
-        if (typeof dateStr === 'number') {
-            const excelEpoch = new Date(1900, 0, 1);
-            const millisecondsPerDay = 24 * 60 * 60 * 1000;
-            let adjustedDays = dateStr;
-            if (dateStr > 59) {
-                adjustedDays = dateStr - 1;
-            }
-            date = new Date(excelEpoch.getTime() + (adjustedDays - 1) * millisecondsPerDay);
-        }
-        // Si es un string
-        else if (typeof dateStr === 'string') {
-            // Formato DD/MM/AAAA HH:MM
-            if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}$/)) {
-                const [datePart, timePart] = dateStr.split(/\s+/);
-                const [day, month, year] = datePart.split('/').map(Number);
-                const [hour, minute] = timePart.split(':').map(Number);
-                date = new Date(year, month - 1, day, hour, minute);
-            }
-            // Formato DD/MM/AAAA
-            else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
-                const [day, month, year] = dateStr.split('/').map(Number);
-                date = new Date(year, month - 1, day);
-            }
-            else {
-                // Intentar parsear directamente
-                date = new Date(dateStr);
-            }
-        }
-        else {
-            date = new Date(dateStr);
-        }
-        
-        // Validar que la fecha sea válida
-        if (isNaN(date.getTime())) {
-            console.warn('📊 No se pudo parsear la fecha:', dateStr);
-            return null;
-        }
-        
-        return date;
-    }
-
-    // Calcular cycle time para cada defecto resuelto
+    // Calcular cycle time para cada defecto resuelto (usando parseExcelDate global)
     const cycleTimeData = defectsData.details
         .filter(defect => {
             // Buscar tanto dateResolved como dateResolution para compatibilidad
@@ -3283,8 +3258,8 @@ function handleExcelFile(file) {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             
-            // Verificar si es formato multi-proyecto (sin necesidad de hojas Resumen_Pruebas ni Categorias_Pruebas)
-            const expectedSheets = ['Proyectos', 'Tendencia_Historica', 'Detalle_Pruebas', 'Defectos'];
+            // Verificar si es formato multi-proyecto (Tendencia_Historica ya NO es necesaria)
+            const expectedSheets = ['Proyectos', 'Detalle_Pruebas', 'Defectos'];
             const hasAllSheets = expectedSheets.every(sheet => workbook.SheetNames.includes(sheet));
             
             if (hasAllSheets) {
@@ -3322,16 +3297,16 @@ function handleExcelFile(file) {
 // Manejar Excel multi-proyecto
 function handleMultiProjectExcel(workbook) {
     try {
-        // Leer todas las pestañas (sin Resumen_Pruebas ni Categorias_Pruebas, se calculan automáticamente)
+        // Leer pestañas necesarias (Tendencia_Historica ya NO se usa, se genera automáticamente)
         const proyectos = XLSX.utils.sheet_to_json(workbook.Sheets['Proyectos']);
-        const tendenciaHistorica = XLSX.utils.sheet_to_json(workbook.Sheets['Tendencia_Historica']);
         const detallePruebas = XLSX.utils.sheet_to_json(workbook.Sheets['Detalle_Pruebas']);
         const defectos = XLSX.utils.sheet_to_json(workbook.Sheets['Defectos']);
+        
+        console.log('📊 Excel cargado - Tendencia se generará automáticamente desde Detalle_Pruebas');
         
         // Almacenar datos en variable global para uso posterior
         loadedExcelData = {
             proyectos,
-            tendenciaHistorica,
             detallePruebas,
             defectos
         };
@@ -3422,20 +3397,19 @@ function loadProjectData(proyectoId, allData) {
     try {
         // Filtrar datos por proyecto
         const proyectoInfo = allData.proyectos.find(p => p.proyecto_id === proyectoId);
-        const tendencia = allData.tendenciaHistorica.filter(t => t.proyecto_id === proyectoId);
         const pruebas = allData.detallePruebas.filter(p => p.proyecto_id === proyectoId);
         const defectos = allData.defectos.filter(d => d.proyecto_id === proyectoId);
         
-        // DEBUG: Mostrar estructura de datos de Tendencia_Historica
-        console.log('🔍 DEBUG TENDENCIA_HISTORICA DESDE EXCEL:');
-        console.log('Total de registros de tendencia histórica:', allData.tendenciaHistorica.length);
-        console.log('Registros filtrados para proyecto', proyectoId, ':', tendencia.length);
-        if (tendencia.length > 0) {
-            console.log('Estructura del primer registro de tendencia:', tendencia[0]);
-            console.log('Todas las claves disponibles:', Object.keys(tendencia[0]));
-        } else {
-            console.log('⚠️ No se encontraron datos de tendencia para este proyecto');
-        }
+        console.log('📂 PROYECTO SELECCIONADO:', proyectoInfo.nombre_proyecto);
+        console.log('📅 FECHAS LEÍDAS DEL EXCEL:');
+        console.log('   • fecha_inicio:', proyectoInfo.fecha_inicio, '(tipo:', typeof proyectoInfo.fecha_inicio, ')');
+        console.log('   • fecha_fin:', proyectoInfo.fecha_fin, '(tipo:', typeof proyectoInfo.fecha_fin, ')');
+        console.log('   • fecha_inicio_real:', proyectoInfo.fecha_inicio_real, '(tipo:', typeof proyectoInfo.fecha_inicio_real, ')');
+        console.log('   • fecha_fin_real:', proyectoInfo.fecha_fin_real, '(tipo:', typeof proyectoInfo.fecha_fin_real, ')');
+        
+        // GENERAR TENDENCIA AUTOMÁTICAMENTE desde Detalle_Pruebas y fechas del proyecto
+        console.log('🔄 Generando tendencia automática (NO se usa Tendencia_Historica)');
+        const tendenciaGenerada = generateTrendFromDetails(pruebas, proyectoInfo);
         
         // CALCULAR AUTOMÁTICAMENTE LOS RESÚMENES BASÁNDOSE EN DETALLE_PRUEBAS
         const resumenCalculado = calculateSummaryFromDetails(pruebas);
@@ -3445,7 +3419,7 @@ function loadProjectData(proyectoId, allData) {
         const dashboardData = transformMultiProjectData({
             proyecto: proyectoInfo,
             resumen: resumenCalculado,
-            tendencia,
+            tendencia: tendenciaGenerada,  // Usar tendencia generada automáticamente
             categorias: categoriasCalculadas,
             pruebas,
             defectos
@@ -3614,6 +3588,283 @@ function calculateCategoriesFromDetails(pruebas) {
     return resultado;
 }
 
+// Generar tendencia automática desde Detalle_Pruebas y fechas del proyecto
+function generateTrendFromDetails(pruebas, proyectoInfo) {
+    console.log('🔄 Generando tendencia automática desde Detalle_Pruebas');
+    console.log('📋 FECHAS DEL PROYECTO RECIBIDAS:');
+    console.log('   • fecha_inicio (Planificado):', proyectoInfo.fecha_inicio);
+    console.log('   • fecha_fin (Planificado):', proyectoInfo.fecha_fin);
+    console.log('   • fecha_inicio_real:', proyectoInfo.fecha_inicio_real);
+    console.log('   • fecha_fin_real:', proyectoInfo.fecha_fin_real);
+    
+    // Contar TODAS las pruebas por estado (sin importar si tienen dia_ejecutado)
+    const totalPruebas = pruebas.filter(p => {
+        const estado = mapStatus(p.Estado || p.estado || '');
+        return estado.toLowerCase() !== 'desestimado' && estado.toLowerCase() !== 'dismissed';
+    }).length;
+    
+    if (totalPruebas === 0) {
+        console.warn('⚠️ No hay pruebas para generar tendencia');
+        return [];
+    }
+    
+    const conteoTotal = {
+        exitosas: 0,
+        fallidas: 0,
+        pendientes: 0,
+        bloqueadas: 0
+    };
+    
+    // Agrupar pruebas por día ejecutado (para el gráfico de tendencia)
+    const pruebasPorDia = {};
+    const pruebasSinFecha = {
+        successful: 0,
+        failed: 0,
+        pending: 0,
+        blocked: 0
+    };
+    
+    // Variables para encontrar el rango real de fechas de ejecución
+    let fechaMinimaEjecucion = null;
+    let fechaMaximaEjecucion = null;
+    
+    pruebas.forEach(prueba => {
+        const diaEjecutado = prueba.dia_ejecutado || prueba.Dia_Ejecutado || prueba.fecha_ejecucion;
+        const estado = mapStatus(prueba.Estado || prueba.estado || '');
+        
+        // Ignorar desestimadas
+        if (estado.toLowerCase() === 'desestimado' || estado.toLowerCase() === 'dismissed') {
+            return;
+        }
+        
+        // Contar en el total general
+        switch (estado.toLowerCase()) {
+            case 'exitosa':
+            case 'success':
+                conteoTotal.exitosas++;
+                break;
+            case 'fallida':
+            case 'failed':
+            case 'failure':
+                conteoTotal.fallidas++;
+                break;
+            case 'pendiente':
+            case 'pending':
+                conteoTotal.pendientes++;
+                break;
+            case 'bloqueada':
+            case 'blocked':
+                conteoTotal.bloqueadas++;
+                break;
+        }
+        
+        // Validar que diaEjecutado tenga un valor para distribuir en el tiempo
+        if (diaEjecutado !== null && diaEjecutado !== undefined && diaEjecutado !== '') {
+            const fechaEjecucion = parseExcelDate(diaEjecutado);
+            if (fechaEjecucion) {
+                // Actualizar rango de fechas reales
+                if (!fechaMinimaEjecucion || fechaEjecucion < fechaMinimaEjecucion) {
+                    fechaMinimaEjecucion = fechaEjecucion;
+                }
+                if (!fechaMaximaEjecucion || fechaEjecucion > fechaMaximaEjecucion) {
+                    fechaMaximaEjecucion = fechaEjecucion;
+                }
+                
+                const fechaKey = fechaEjecucion.toISOString().split('T')[0];
+                if (!pruebasPorDia[fechaKey]) {
+                    pruebasPorDia[fechaKey] = {
+                        successful: 0,
+                        failed: 0,
+                        pending: 0,
+                        blocked: 0
+                    };
+                }
+                
+                switch (estado.toLowerCase()) {
+                    case 'exitosa':
+                    case 'success':
+                        pruebasPorDia[fechaKey].successful++;
+                        break;
+                    case 'fallida':
+                    case 'failed':
+                    case 'failure':
+                        pruebasPorDia[fechaKey].failed++;
+                        break;
+                    case 'pendiente':
+                    case 'pending':
+                        pruebasPorDia[fechaKey].pending++;
+                        break;
+                    case 'bloqueada':
+                    case 'blocked':
+                        pruebasPorDia[fechaKey].blocked++;
+                        break;
+                }
+            }
+        } else {
+            // Casos sin fecha: se agregan al contador de "sin fecha" 
+            // y se distribuirán al último día del proyecto
+            switch (estado.toLowerCase()) {
+                case 'exitosa':
+                case 'success':
+                    pruebasSinFecha.successful++;
+                    break;
+                case 'fallida':
+                case 'failed':
+                case 'failure':
+                    pruebasSinFecha.failed++;
+                    break;
+                case 'pendiente':
+                case 'pending':
+                    pruebasSinFecha.pending++;
+                    break;
+                case 'bloqueada':
+                case 'blocked':
+                    pruebasSinFecha.blocked++;
+                    break;
+            }
+        }
+    });
+    
+    // LÓGICA DE FECHAS PARA EL GRÁFICO:
+    // 1. Fecha Inicial: SIEMPRE usar "Fecha de Inicio Planificado"
+    // 2. Fecha Final: "Fecha de Cierre Real" si existe, si no usar HOY
+    
+    // Fecha inicial: SIEMPRE la fecha de inicio planificado
+    const fechaInicioGrafico = parseExcelDate(proyectoInfo.fecha_inicio);
+    
+    if (!fechaInicioGrafico) {
+        console.error('❌ No se pudo parsear la Fecha de Inicio Planificado');
+        return [];
+    }
+    
+    // Fecha final: Fecha de Cierre Real o fecha actual (HOY)
+    let fechaFinalGrafico = null;
+    
+    if (proyectoInfo.fecha_fin_real) {
+        fechaFinalGrafico = parseExcelDate(proyectoInfo.fecha_fin_real);
+        console.log('📅 Usando Fecha de Cierre Real como fecha final del gráfico');
+    } else {
+        fechaFinalGrafico = new Date(); // Fecha actual (HOY)
+        console.log('📅 No hay Fecha de Cierre Real, usando HOY como fecha final del gráfico');
+    }
+    
+    // Si las ejecuciones van más allá de la fecha final determinada, extender hasta ahí
+    if (fechaMaximaEjecucion && fechaMaximaEjecucion > fechaFinalGrafico) {
+        fechaFinalGrafico = fechaMaximaEjecucion;
+        console.log('📅 Ejecuciones detectadas más allá de la fecha final, extendiendo gráfico hasta última ejecución');
+    }
+    
+    if (!fechaFinalGrafico) {
+        console.error('❌ No se pudo determinar la fecha final para la tendencia');
+        return [];
+    }
+    
+    console.log('📅 RANGO FINAL DEL GRÁFICO:', {
+        desde: fechaInicioGrafico.toISOString().split('T')[0] + ' (Fecha Inicio Planificado)',
+        hasta: fechaFinalGrafico.toISOString().split('T')[0] + ' (Fecha Cierre Real o HOY)',
+        diasConEjecuciones: Object.keys(pruebasPorDia).length
+    });
+    
+    // Generar lista de días laborables (lunes a viernes) desde fecha planificada hasta fecha real/hoy
+    const diasLaborables = generateWorkdays(fechaInicioGrafico, fechaFinalGrafico);
+    console.log(`📊 Total de días laborables en rango: ${diasLaborables.length}`);
+    
+    // Construir tendencia acumulativa día a día
+    const tendencia = [];
+    let acumuladoExitosas = 0;
+    let acumuladoFallidas = 0;
+    let acumuladoPendientes = 0;
+    let acumuladoBloqueadas = 0;
+    
+    diasLaborables.forEach((dia, index) => {
+        const fechaKey = dia.toISOString().split('T')[0];
+        const pruebasDia = pruebasPorDia[fechaKey] || { successful: 0, failed: 0, pending: 0, blocked: 0 };
+        
+        // Acumular las pruebas del día
+        acumuladoExitosas += pruebasDia.successful;
+        acumuladoFallidas += pruebasDia.failed;
+        acumuladoPendientes += pruebasDia.pending;
+        acumuladoBloqueadas += pruebasDia.blocked;
+        
+        // Si es el último día, agregar los casos sin fecha
+        const esUltimoDia = index === diasLaborables.length - 1;
+        if (esUltimoDia) {
+            acumuladoExitosas += pruebasSinFecha.successful;
+            acumuladoFallidas += pruebasSinFecha.failed;
+            acumuladoPendientes += pruebasSinFecha.pending;
+            acumuladoBloqueadas += pruebasSinFecha.blocked;
+        }
+        
+        // Calcular planificadas (lo que falta por ejecutar)
+        const ejecutadas = acumuladoExitosas + acumuladoFallidas + acumuladoPendientes + acumuladoBloqueadas;
+        const planificadas = Math.max(0, totalPruebas - ejecutadas);
+        
+        // Calcular % Real ACUMULATIVO basado en casos completados hasta este día
+        // Esto representa el progreso real que se va construyendo día a día
+        const pruebasCompletadas = acumuladoExitosas + acumuladoFallidas;
+        const realProgress = totalPruebas > 0 ? parseFloat(((pruebasCompletadas / totalPruebas) * 100).toFixed(1)) : 0;
+        
+        // Convertir fecha a formato dd/MM/yyyy para compatibilidad con el resto del código
+        const [year, month, day] = fechaKey.split('-');
+        const fechaFormateada = `${day}/${month}/${year}`;
+        
+        tendencia.push({
+            date: fechaFormateada,  // Usar formato dd/MM/yyyy
+            planned: planificadas,
+            successful: acumuladoExitosas,
+            failed: acumuladoFallidas,
+            pending: acumuladoPendientes,
+            blocked: acumuladoBloqueadas,
+            realProgress: realProgress  // % Real acumulativo día a día
+        });
+    });
+    
+    console.log(`✅ Tendencia generada: ${tendencia.length} días laborables`);
+    console.log('📊 RESUMEN DEL PROGRESO REAL:');
+    console.log(`   • Total de pruebas del proyecto: ${totalPruebas}`);
+    console.log(`   • Exitosas TOTALES (conteo general): ${conteoTotal.exitosas}`);
+    console.log(`   • Fallidas TOTALES (conteo general): ${conteoTotal.fallidas}`);
+    console.log(`   • Pendientes TOTALES: ${conteoTotal.pendientes}`);
+    console.log(`   • Bloqueadas TOTALES: ${conteoTotal.bloqueadas}`);
+    console.log(`   • Casos con dia_ejecutado: ${Object.keys(pruebasPorDia).length} días distintos`);
+    console.log(`   • Casos SIN dia_ejecutado: E=${pruebasSinFecha.successful} F=${pruebasSinFecha.failed} P=${pruebasSinFecha.pending} B=${pruebasSinFecha.blocked}`);
+    console.log(`   • Acumulado en tendencia (último día): E=${acumuladoExitosas} F=${acumuladoFallidas}`);
+    console.log(`   • Casos completados (exitosas + fallidas): ${acumuladoExitosas + acumuladoFallidas}`);
+    console.log(`   • % Real final: ${tendencia.length > 0 ? tendencia[tendencia.length - 1].realProgress : 0}%`);
+    console.log(`   • % Real esperado: ${totalPruebas > 0 ? ((conteoTotal.exitosas + conteoTotal.fallidas) / totalPruebas * 100).toFixed(1) : 0}%`);
+    console.log(`   ⚠️ Fórmula: (exitosas + fallidas) / totalPruebas × 100`);
+    console.log('');
+    console.log('🔍 VERIFICACIÓN DE CONSISTENCIA:');
+    console.log(`   • ¿Acumulado = Conteo Total? E: ${acumuladoExitosas === conteoTotal.exitosas ? '✅' : '❌'} F: ${acumuladoFallidas === conteoTotal.fallidas ? '✅' : '❌'}`);
+    if (acumuladoExitosas !== conteoTotal.exitosas || acumuladoFallidas !== conteoTotal.fallidas) {
+        console.warn(`   ⚠️ INCONSISTENCIA DETECTADA: El acumulado no coincide con el conteo total`);
+        console.warn(`   → Esto significa que hay casos sin dia_ejecutado que se agregaron al último día`);
+    }
+    console.log('');
+    console.log('📅 FECHAS DE LA TENDENCIA:');
+    console.log('   Primer día:', tendencia[0]);
+    console.log('   Último día:', tendencia[tendencia.length - 1]);
+    
+    return tendencia;
+}
+
+// Generar días laborables (lunes a viernes) entre dos fechas
+function generateWorkdays(startDate, endDate) {
+    const dias = [];
+    const current = new Date(startDate);
+    
+    while (current <= endDate) {
+        const dayOfWeek = current.getDay();
+        // 0 = domingo, 6 = sábado
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            dias.push(new Date(current));
+        }
+        current.setDate(current.getDate() + 1);
+    }
+    
+    return dias;
+}
+
 // Transformar datos multi-proyecto a formato dashboard
 function transformMultiProjectData(data) {
     // Debug: mostrar fechas originales
@@ -3667,7 +3918,21 @@ function transformMultiProjectData(data) {
             dismissed: data.resumen.pruebas_desestimadas || 0
         },
         trend: (() => {
-            // Mapear datos de tendencia desde Excel
+            // La tendencia ya viene en el formato correcto desde generateTrendFromDetails
+            // Solo necesitamos validar que tenga datos
+            if (!data.tendencia || data.tendencia.length === 0) {
+                console.warn('⚠️ No hay datos de tendencia disponibles');
+                return [];
+            }
+            
+            // Si la tendencia ya tiene el formato correcto (date, planned, successful, etc.)
+            if (data.tendencia[0] && data.tendencia[0].date) {
+                console.log('✅ Tendencia ya en formato correcto, usando directamente');
+                return data.tendencia;
+            }
+            
+            // Si viene del formato legacy de Excel (fecha, planificadas, exitosas, etc.)
+            console.log('📊 Convirtiendo tendencia desde formato Excel legacy');
             const trendData = data.tendencia.map(t => ({
                 date: formatDateForDashboard(t.fecha),
                 planned: t.planificadas,
