@@ -650,7 +650,7 @@ function createCharts() {
     createCategoryChart();
     createDefectsChart();
     updateDefectCycleTimeChart(testData.defects);
-    updateCoverageChart(testData.testDetails);
+    updateAgeOfDefectsChart(testData.defects.details || []);
     updateDailyExecutionChart(testData.testDetails);
     updateExecutorDistributionChart(testData.testDetails);
     updateDeliverablesChart();
@@ -676,12 +676,8 @@ function createPieChart() {
         chartColors.push('#6B7280');
     }
     
-    // Agregar desestimadas si existe
-    if (testData.summary.dismissed && testData.summary.dismissed > 0) {
-        values.push(testData.summary.dismissed);
-        labels.push('Desestimadas');
-        chartColors.push('#8B8B8B');
-    }
+    // NO agregar desestimadas - se excluyen del gráfico
+    // Las desestimadas no se consideran para el 100% del resumen
     
     const data = [{
         values: values,
@@ -1104,19 +1100,38 @@ function updateDefectCycleTimeChart(defectsData) {
     }
 
     console.log('📊 Datos de defectos para cycle time:', defectsData);
+    console.log('📊 Total de defectos disponibles:', defectsData.details.length);
+    
+    // Contar defectos cerrados antes del filtro
+    const closedDefects = defectsData.details.filter(d => {
+        const estado = (d.status || '').toLowerCase();
+        return estado === 'closed' || estado === 'cerrado' || estado === 'resolved' || estado === 'resuelto';
+    });
+    console.log(`🔍 Defectos con estado CLOSED: ${closedDefects.length}`);
 
-    // Calcular cycle time para cada defecto resuelto (usando parseExcelDate global)
+    // Calcular cycle time para TODOS los defectos cerrados/resueltos (sin filtrar por severidad)
     const cycleTimeData = defectsData.details
         .filter(defect => {
             // Buscar tanto dateResolved como dateResolution para compatibilidad
             const resolvedDate = defect.dateResolved || defect.dateResolution;
             const foundDate = defect.dateFound;
-            const hasResolved = resolvedDate && resolvedDate !== '';
-            const hasFound = foundDate && foundDate !== '';
+            const estado = (defect.status || '').toLowerCase();
             
-            console.log(`📊 Defecto ${defect.id}: dateFound="${foundDate}", dateResolved="${defect.dateResolved}", dateResolution="${defect.dateResolution}", incluir=${hasResolved && hasFound}`);
-            return hasResolved && hasFound;
-        }) // Solo defectos resueltos
+            // Incluir defectos con estado "closed", "cerrado", "resolved", "resuelto" O que tengan fecha de resolución
+            const isClosed = estado === 'closed' || estado === 'cerrado' || estado === 'resolved' || estado === 'resuelto';
+            const hasResolvedDate = resolvedDate && resolvedDate !== '';
+            const hasFoundDate = foundDate && foundDate !== '';
+            
+            // Considerar cerrado si tiene estado cerrado O si tiene fecha de resolución
+            const shouldInclude = (isClosed || hasResolvedDate) && hasFoundDate;
+            
+            if (isClosed && !shouldInclude) {
+                console.warn(`⚠️ Defecto CLOSED excluido: ${defect.id} - dateFound="${foundDate}", dateResolved="${resolvedDate}"`);
+            }
+            
+            console.log(`📊 Defecto ${defect.id} (${defect.severity}): estado="${defect.status}", hasResolvedDate=${hasResolvedDate}, hasFoundDate=${hasFoundDate} → ${shouldInclude ? 'INCLUIR' : 'EXCLUIR'}`);
+            return shouldInclude;
+        })
         .map(defect => {
             const foundDate = parseExcelDate(defect.dateFound);
             // Usar dateResolved o dateResolution según esté disponible
@@ -1157,7 +1172,16 @@ function updateDefectCycleTimeChart(defectsData) {
         .filter(item => item !== null) // Filtrar defectos con fechas inválidas
         .sort((a, b) => a.resolvedDate - b.resolvedDate); // Ordenar por fecha de resolución
 
-    console.log('� Datos de cycle time calculados:', cycleTimeData);
+    console.log(`✅ Time To Fix - Resumen:`);
+    console.log(`   Total defectos CLOSED en Excel: ${closedDefects.length}`);
+    console.log(`   Defectos mostrados en gráfico: ${cycleTimeData.length}`);
+    console.log(`   Defectos excluidos (sin fechas válidas): ${closedDefects.length - cycleTimeData.length}`);
+    console.log('📊 Desglose por severidad:', 
+        cycleTimeData.reduce((acc, d) => {
+            acc[d.severity] = (acc[d.severity] || 0) + 1;
+            return acc;
+        }, {})
+    );
 
     if (cycleTimeData.length === 0) {
         // Mostrar gráfico indicando que no hay defectos resueltos
@@ -1309,176 +1333,179 @@ function updateDefectCycleTimeChart(defectsData) {
     Plotly.newPlot('burndownChart', [barTrace, objectiveLine], layout, config);
 }
 
-// Función para actualizar Cobertura por Módulo
-function updateCoverageChart(detailsData) {
-    if (!detailsData || detailsData.length === 0) {
-        console.log('⚠️ No hay datos de detalles para cobertura por escenario');
+// Función para actualizar Age of Open Defects
+function updateAgeOfDefectsChart(defectsData) {
+    // Validar que defectsData sea un array
+    if (!defectsData || !Array.isArray(defectsData) || defectsData.length === 0) {
+        console.log('⚠️ No hay datos de defectos para Age of Open Defects');
+        
+        // Mostrar gráfico vacío
+        const layout = {
+            margin: { t: 20, b: 60, l: 120, r: 40 },
+            showlegend: false,
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            annotations: [{
+                text: 'No hay defectos abiertos',
+                x: 0.5,
+                y: 0.5,
+                xref: 'paper',
+                yref: 'paper',
+                showarrow: false,
+                font: { size: 14, color: '#64748b' }
+            }]
+        };
+        
+        Plotly.newPlot('ageOfDefectsChart', [], layout, { responsive: true, displayModeBar: false });
         return;
     }
 
-    console.log(`🔍 DEBUGGING COBERTURA: Actualizando gráfico de cobertura con ${detailsData.length} pruebas`);
-    console.log('🔍 DEBUGGING COBERTURA: Muestra de datos:', detailsData.slice(0, 3));
-
-    // Agrupar por escenario/módulo
-    const moduleStats = {};
+    console.log(`📊 Calculando Age of Open Defects con ${defectsData.length} defectos`);
     
-    detailsData.forEach((test, index) => {
-        const module = test.escenario || test.categoria || test.modulo || 'Sin Escenario';
-        const status = test.status || '';
-        
-        if (!moduleStats[module]) {
-            moduleStats[module] = {
-                total: 0,
-                completed: 0,
-                planned: 0,
-                exitosas: 0,
-                desestimadas: 0,
-                fallidas: 0,
-                pendientes: 0,
-                bloqueadas: 0
-            };
-        }
-        
-        moduleStats[module].total++;
-        
-        // Contar por tipo específico para debugging
-        switch(status) {
-            case 'success':
-                moduleStats[module].exitosas++;
-                moduleStats[module].completed++;
-                break;
-            case 'dismissed':
-                moduleStats[module].desestimadas++;
-                moduleStats[module].completed++;
-                break;
-            case 'failure':
-                moduleStats[module].fallidas++;
-                moduleStats[module].planned++;
-                break;
-            case 'pending':
-                moduleStats[module].pendientes++;
-                moduleStats[module].planned++;
-                break;
-            case 'blocked':
-                moduleStats[module].bloqueadas++;
-                moduleStats[module].planned++;
-                break;
-            default:
-                console.warn(`⚠️ Estado desconocido en cobertura: "${status}" para prueba ${index + 1}`);
-                moduleStats[module].planned++;
-        }
-        
-        // Log detallado para las primeras pruebas de cada módulo
-        if (moduleStats[module].total <= 3) {
-            const cubierto = (status === 'success' || status === 'dismissed') ? 'CUBIERTO' : 'NO CUBIERTO';
-            console.log(`📊 COBERTURA ${module}: Prueba "${test.name}" con status "${status}" → ${cubierto}`);
-        }
+    // Mostrar estados de todos los defectos para debugging
+    console.log('🔍 Estados de defectos:');
+    defectsData.forEach((d, idx) => {
+        console.log(`  ${idx + 1}. ${d.title || d.id}: estado="${d.status}" (tipo: ${typeof d.status})`);
     });
 
-    console.log(`📈 DEBUGGING COBERTURA: Estadísticas detalladas por escenario:`);
-    Object.keys(moduleStats).forEach(module => {
-        const stats = moduleStats[module];
-        const porcentaje = Math.round((stats.completed / stats.total) * 100);
-        console.log(`   • ${module}:`);
-        console.log(`     - Total: ${stats.total}`);
-        console.log(`     - Exitosas: ${stats.exitosas}`);
-        console.log(`     - Desestimadas: ${stats.desestimadas}`);
-        console.log(`     - Completadas (exitosas + desestimadas): ${stats.completed}`);
-        console.log(`     - Fallidas: ${stats.fallidas}`);
-        console.log(`     - Pendientes: ${stats.pendientes}`);
-        console.log(`     - Bloqueadas: ${stats.bloqueadas}`);
-        console.log(`     - COBERTURA: ${porcentaje}%`);
+    // Filtrar solo defectos con estado "open" o "abierto"
+    const openDefects = defectsData.filter(d => {
+        const estado = (d.status || d.estado || d.Estado || '').toString().toLowerCase().trim();
+        const isOpen = estado === 'open' || estado === 'abierto';
+        console.log(`  Defecto "${d.title || d.id}": estado="${estado}" → ${isOpen ? 'INCLUIR' : 'EXCLUIR'}`);
+        return isOpen;
     });
 
-    // Calcular porcentajes de cobertura
-    const modules = Object.keys(moduleStats);
-    const coveragePercentages = modules.map(module => {
-        const stats = moduleStats[module];
-        return Math.round((stats.completed / stats.total) * 100);
+    console.log(`🔓 Defectos abiertos (Open): ${openDefects.length} de ${defectsData.length}`);
+
+    if (openDefects.length === 0) {
+        const layout = {
+            margin: { t: 20, b: 60, l: 120, r: 40 },
+            showlegend: false,
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            annotations: [{
+                text: 'No hay defectos abiertos',
+                x: 0.5,
+                y: 0.5,
+                xref: 'paper',
+                yref: 'paper',
+                showarrow: false,
+                font: { size: 14, color: '#64748b' }
+            }]
+        };
+        
+        Plotly.newPlot('ageOfDefectsChart', [], layout, { responsive: true, displayModeBar: false });
+        return;
+    }
+
+    // Calcular días de antigüedad para cada defecto
+    const today = new Date();
+    const defectsWithAge = openDefects.map(d => {
+        // Intentar obtener la fecha de detección de diferentes campos
+        const fechaStr = d.dateFound || d.fecha_deteccion || d.Fecha_Deteccion || d.fecha_encontrado;
+        const fechaDeteccion = parseExcelDate(fechaStr);
+        
+        if (!fechaDeteccion) {
+            console.warn('⚠️ Defecto sin fecha de detección:', d.id || d.defecto_id || d.title);
+            return null;
+        }
+        
+        const diffTime = today - fechaDeteccion;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        console.log(`📅 Defecto "${d.title || d.id}": ${diffDays} días abierto`);
+        
+        return {
+            ...d,
+            age: diffDays >= 0 ? diffDays : 0
+        };
+    }).filter(d => d !== null);
+
+    console.log(`⏰ Defectos con edad calculada: ${defectsWithAge.length}`);
+
+    // Definir rangos de tiempo
+    const ranges = {
+        '0-7 días': 0,
+        '8-14 días': 0,
+        '15-30 días': 0,
+        '31-60 días': 0,
+        '61-90 días': 0,
+        '90+ días': 0
+    };
+
+    // Contar defectos por rango
+    defectsWithAge.forEach(d => {
+        const age = d.age;
+        if (age <= 7) ranges['0-7 días']++;
+        else if (age <= 14) ranges['8-14 días']++;
+        else if (age <= 30) ranges['15-30 días']++;
+        else if (age <= 60) ranges['31-60 días']++;
+        else if (age <= 90) ranges['61-90 días']++;
+        else ranges['90+ días']++;
     });
 
-    console.log('📊 Porcentajes de cobertura final:', modules.map((m, i) => `${m}: ${coveragePercentages[i]}%`));
-    
-    // Mostrar módulos con 100% de éxito (barras verdes)
-    const perfectModules = modules.filter((m, i) => coveragePercentages[i] === 100);
-    if (perfectModules.length > 0) {
-        console.log('🟢 Módulos con 100% exitosos (barras verdes):', perfectModules);
-    }
+    console.log('📊 Distribución por rangos:', ranges);
 
-    // Actualizar estadísticas generales - 100% = todos los casos exitosos
-    const totalModules = modules.length;
-    const completeModules = coveragePercentages.filter(pct => pct === 100).length; // Módulos con todos los casos exitosos
-    const avgCoverage = coveragePercentages.length > 0 ? 
-        Math.round(coveragePercentages.reduce((a, b) => a + b, 0) / coveragePercentages.length) : 0;
+    // Preparar datos para el gráfico
+    const categories = Object.keys(ranges);
+    const values = Object.values(ranges);
 
-    // Actualizar elementos HTML
-    const avgCoverageElement = document.getElementById('avgCoverage');
-    const completeModulesElement = document.getElementById('completeModules');
-    
-    if (avgCoverageElement) {
-        avgCoverageElement.textContent = `${avgCoverage}%`;
-    }
-    if (completeModulesElement) {
-        completeModulesElement.textContent = completeModules;
-    }
-
-    console.log(`📊 Estadísticas generales: Promedio=${avgCoverage}%, Completos=${completeModules}/${totalModules}`);
-
-    // Crear gráfico de barras horizontal
+    // Crear gráfico de barras horizontales
     const trace = {
-        x: coveragePercentages,
-        y: modules,
+        x: values,
+        y: categories,
         type: 'bar',
         orientation: 'h',
         marker: {
-            color: coveragePercentages.map(pct => {
-                if (pct === 100) return '#22c55e'; // Verde brillante - TODOS EXITOSOS
-                if (pct >= 80) return '#84cc16';   // Verde claro
-                if (pct >= 60) return '#eab308';   // Amarillo
-                if (pct >= 40) return '#f97316';   // Naranja
-                if (pct > 0) return '#ef4444';     // Rojo - algunos exitosos
-                return '#6b7280';                  // Gris - ningún exitoso
+            color: categories.map(cat => {
+                if (cat === '0-7 días') return '#22c55e';      // Verde - Reciente
+                if (cat === '8-14 días') return '#84cc16';     // Verde claro
+                if (cat === '15-30 días') return '#eab308';    // Amarillo
+                if (cat === '31-60 días') return '#f97316';    // Naranja
+                if (cat === '61-90 días') return '#ef4444';    // Rojo
+                return '#dc2626';                              // Rojo oscuro - Crítico
             }),
             line: {
                 color: '#e2e8f0',
                 width: 1
             }
         },
-        text: coveragePercentages.map(pct => `${pct}%`),
+        text: values.map(v => v > 0 ? v.toString() : ''),
         textposition: 'inside',
         insidetextanchor: 'middle',
         textfont: {
             color: 'white',
             size: 12,
+            weight: 'bold',
             family: 'Inter, sans-serif'
-        }
+        },
+        hovertemplate: '<b>%{y}</b><br>Defectos: %{x}<extra></extra>'
     };
 
     const layout = {
-        title: {
-            text: '',
-            font: { size: 14, color: '#1e293b' }
-        },
+        margin: { t: 20, b: 60, l: 120, r: 40 },
+        showlegend: false,
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
         xaxis: {
-            title: 'Porcentaje de Cobertura (%)',
-            gridcolor: '#f1f5f9',
-            range: [0, 100]
+            title: 'Cantidad de Defectos',
+            gridcolor: '#e2e8f0',
+            linecolor: '#e2e8f0',
+            tickfont: { size: 11, family: 'Inter, sans-serif' }
         },
         yaxis: {
             title: '',
-            gridcolor: '#f1f5f9',
+            gridcolor: '#e2e8f0',
+            linecolor: '#e2e8f0',
             automargin: true,
-            tickfont: {
-                size: 11,
-                family: 'Inter, sans-serif'
-            }
+            tickfont: { size: 11, family: 'Inter, sans-serif' }
         },
-        
-        plot_bgcolor: 'rgba(0,0,0,0)',
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        font: { family: 'Inter, sans-serif', size: 12, color: '#64748b' },
-        margin: { t: 30, r: 30, b: 60, l: 200 },
-        showlegend: false
+        font: {
+            family: 'Inter, sans-serif',
+            size: 11,
+            color: '#64748b'
+        }
     };
 
     const config = {
@@ -1486,7 +1513,7 @@ function updateCoverageChart(detailsData) {
         displayModeBar: false
     };
 
-    Plotly.newPlot('coverageChart', [trace], layout, config);
+    Plotly.newPlot('ageOfDefectsChart', [trace], layout, config);
 }
 
 // Función para actualizar Ejecución Diaria por Ejecutor
@@ -3038,7 +3065,7 @@ window.addEventListener('resize', function() {
     Plotly.Plots.resize('categoryChart');
     Plotly.Plots.resize('defectsChart');
     Plotly.Plots.resize('burndownChart');
-    Plotly.Plots.resize('coverageChart');
+    Plotly.Plots.resize('ageOfDefectsChart');
     Plotly.Plots.resize('dailyExecutionChart');
     Plotly.Plots.resize('executorDistributionChart');
 });
@@ -3211,7 +3238,7 @@ function hideLoadingState() {
 
 // Función para limpiar todos los gráficos
 function clearAllCharts() {
-    const chartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'coverageChart', 'dailyExecutionChart', 'executorDistributionChart'];
+    const chartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'ageOfDefectsChart', 'dailyExecutionChart', 'executorDistributionChart'];
     chartIds.forEach(chartId => {
         const chartElement = document.getElementById(chartId);
         if (chartElement) {
@@ -4746,8 +4773,8 @@ function updateSummaryFromDetails() {
     // Actualizar la información del proyecto con el nuevo progreso calculado
     initializeDashboard();
     
-    // Actualizar gráfico de cobertura con los nuevos datos
-    updateCoverageChart(testData.testDetails);
+    // Actualizar gráfico de Age of Open Defects con los datos de defectos
+    updateAgeOfDefectsChart(testData.defects.details || []);
     
     // Actualizar gráfico de ejecución diaria
     updateDailyExecutionChart(testData.testDetails);
@@ -5234,7 +5261,7 @@ function copyAndExpandExistingChart(chartType, containerId) {
         'category': 'categoryChart',
         'defects': 'defectsChart',
         'burndown': 'burndownChart',
-        'coverage': 'coverageChart',
+        'ageOfDefects': 'ageOfDefectsChart',
         'dailyExecution': 'dailyExecutionChart',
         'executorDistribution': 'executorDistributionChart',
         'deliverables': 'deliverablesChart'
@@ -5312,8 +5339,8 @@ function copyAndExpandExistingChart(chartType, containerId) {
         };
     }
     
-    // Configuración específica para gráfico de cobertura
-    if (chartType === 'coverage') {
+    // Configuración específica para gráfico de Age of Open Defects
+    if (chartType === 'ageOfDefects') {
         newLayout.xaxis = {
             ...originalLayout.xaxis,
             tickfont: { size: 14 }
@@ -5322,7 +5349,7 @@ function copyAndExpandExistingChart(chartType, containerId) {
             ...originalLayout.yaxis,
             tickfont: { size: 14 }
         };
-        newLayout.margin = { t: 60, b: 60, l: 150, r: 60 }; // Más espacio para etiquetas de módulos
+        newLayout.margin = { t: 60, b: 60, l: 150, r: 60 };
     }
     
     // Configuración específica para gráfico de entregables
@@ -5365,6 +5392,9 @@ function createExpandedPieChart(container) {
         labels.push('Bloqueadas');
         colors.push('#6B7280');
     }
+    
+    // NO agregar desestimadas - se excluyen del gráfico
+    // Las desestimadas no se consideran para el 100% del resumen
     
     const chartData = [{
         values: values,
@@ -5822,7 +5852,7 @@ async function generatePDFReport() {
 async function captureIndividualChartsCompact(pdf, margin, contentWidth, pageHeight, startY) {
     console.log('📸 Capturando gráficos individuales compactos...');
     
-    const specificChartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart', 'coverageChart'];
+    const specificChartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart', 'ageOfDefectsChart'];
     
     let chartsPerRow = 3; // 3 gráficos por fila para ser más compacto
     let chartIndex = 0;
@@ -5873,7 +5903,7 @@ async function captureIndividualChartsCompact(pdf, margin, contentWidth, pageHei
 async function captureIndividualCharts(pdf, margin, contentWidth, pageHeight) {
     console.log('📸 Capturando gráficos individuales...');
     
-    const specificChartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart', 'coverageChart'];
+    const specificChartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart', 'ageOfDefectsChart'];
     
     let chartsPerRow = 2;
     let chartIndex = 0;
@@ -6128,7 +6158,7 @@ async function addChartsToPDF(pdf, startY, contentWidth) {
             'Distribución de Resultados',
             'Tendencia de Ejecución',
             'Pruebas por Escenario',
-            'Gestión de Defectos',
+            'Defectos por Nivel de Severidad',
             'Cycle Time de Defectos'
         ];
         const chartsPerRow = 2;

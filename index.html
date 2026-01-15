@@ -272,11 +272,11 @@
                         <div class="charts-grid">
                 <!-- Defects Management -->
                 <div class="chart-container">
-                    <button class="chart-expand-btn" onclick="expandChart('defects', 'Gestión de Defectos')" title="Ver ampliado">
+                    <button class="chart-expand-btn" onclick="expandChart('defects', 'Defectos por Nivel de Severidad')" title="Ver ampliado">
                         <i class="fas fa-expand"></i>
                     </button>
                     <div class="chart-header">
-                        <h3>Gestión de Defectos</h3>
+                        <h3>Defectos por Nivel de Severidad</h3>
                         <div class="defects-stats">
                             <span class="defect-stat critical">Críticos: <strong id="criticalDefects">2</strong></span>
                             <span class="defect-stat high">Altos: <strong id="highDefects">5</strong></span>
@@ -298,19 +298,15 @@
                     <div id="burndownChart" class="chart"></div>
                 </div>
 
-                <!-- Module Coverage -->
+                <!-- Age of Open Defects -->
                 <div class="chart-container">
-                    <button class="chart-expand-btn" onclick="expandChart('coverage', 'Cobertura por Módulo')" title="Ver ampliado">
+                    <button class="chart-expand-btn" onclick="expandChart('ageOfDefects', 'Age of Open Defects')" title="Ver ampliado">
                         <i class="fas fa-expand"></i>
                     </button>
                     <div class="chart-header">
-                        <h3>Cobertura por Módulo</h3>
-                        <div class="coverage-stats">
-                            <span class="coverage-stat">Cobertura Promedio: <strong id="avgCoverage">0%</strong></span>
-                            <span class="coverage-stat">Módulos Completos: <strong id="completeModules">0</strong></span>
-                        </div>
+                        <h3>Age of Open Defects</h3>
                     </div>
-                    <div id="coverageChart" class="chart"></div>
+                    <div id="ageOfDefectsChart" class="chart"></div>
                 </div>
                         </div><!-- End charts-grid -->
                     </div><!-- End collapsible-content -->
