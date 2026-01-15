@@ -3238,7 +3238,7 @@ function hideLoadingState() {
 
 // Función para limpiar todos los gráficos
 function clearAllCharts() {
-    const chartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'ageOfDefectsChart', 'dailyExecutionChart', 'executorDistributionChart'];
+    const chartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart', 'ageOfDefectsChart', 'dailyExecutionChart', 'executorDistributionChart', 'deliverablesChart'];
     chartIds.forEach(chartId => {
         const chartElement = document.getElementById(chartId);
         if (chartElement) {
@@ -5852,7 +5852,7 @@ async function generatePDFReport() {
 async function captureIndividualChartsCompact(pdf, margin, contentWidth, pageHeight, startY) {
     console.log('📸 Capturando gráficos individuales compactos...');
     
-    const specificChartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart', 'ageOfDefectsChart'];
+    const specificChartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart', 'ageOfDefectsChart', 'dailyExecutionChart', 'executorDistributionChart', 'deliverablesChart'];
     
     let chartsPerRow = 3; // 3 gráficos por fila para ser más compacto
     let chartIndex = 0;
@@ -5903,7 +5903,7 @@ async function captureIndividualChartsCompact(pdf, margin, contentWidth, pageHei
 async function captureIndividualCharts(pdf, margin, contentWidth, pageHeight) {
     console.log('📸 Capturando gráficos individuales...');
     
-    const specificChartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart', 'ageOfDefectsChart'];
+    const specificChartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart', 'ageOfDefectsChart', 'dailyExecutionChart', 'executorDistributionChart', 'deliverablesChart'];
     
     let chartsPerRow = 2;
     let chartIndex = 0;
@@ -6153,13 +6153,17 @@ async function addChartsToPDF(pdf, startY, contentWidth) {
             return;
         }
         
-        const chartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart'];
+        const chartIds = ['pieChart', 'trendChart', 'categoryChart', 'defectsChart', 'burndownChart', 'ageOfDefectsChart', 'dailyExecutionChart', 'executorDistributionChart', 'deliverablesChart'];
         const chartTitles = [
             'Distribución de Resultados',
             'Tendencia de Ejecución',
             'Pruebas por Escenario',
             'Defectos por Nivel de Severidad',
-            'Cycle Time de Defectos'
+            'Time To Fix',
+            'Age of Open Defects',
+            'Ejecución Diaria de Pruebas',
+            'Distribución por Ejecutor',
+            'Estado de Entregables'
         ];
         const chartsPerRow = 2;
         const chartWidth = (contentWidth - 10) / chartsPerRow;
