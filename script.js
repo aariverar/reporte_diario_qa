@@ -730,7 +730,8 @@ function createTrendChart() {
         name: 'Meta Diaria',
         line: { color: '#F59E0B', width: 3, dash: 'dash' },
         marker: { size: 0 },
-        hovertemplate: 'Meta: %{y:.2f} casos/día<extra></extra>'
+        hovertemplate: 'Meta: %{y:.2f} casos/día<extra></extra>',
+        showlegend: false
     };
 
     // Calcular casos completados POR DÍA (exitosas + fallidas del día, no acumulado)
@@ -759,7 +760,8 @@ function createTrendChart() {
             width: 2
         },
         fillcolor: 'rgba(59, 130, 246, 0.3)',  // Azul con transparencia
-        hovertemplate: 'Ejecutados: %{y} casos<extra></extra>'
+        hovertemplate: 'Ejecutados: %{y} casos<extra></extra>',
+        showlegend: false
     };
 
     const data = [medianaTrace, casosEjecutadosDiaTrace];
@@ -5100,6 +5102,7 @@ function copyAndExpandExistingChart(chartType, containerId) {
     
     // Configuración específica para gráfico de tendencia
     if (chartType === 'trend') {
+        newLayout.showlegend = false;
         newLayout.xaxis = {
             ...originalLayout.xaxis,
             tickfont: { size: 14 }
