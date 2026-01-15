@@ -10,6 +10,9 @@ const colors = {
 // Variable global para almacenar los datos cargados del Excel
 let loadedExcelData = null;
 
+// Variable global para el ciclo seleccionado
+let selectedCycle = 'todos';
+
 // Datos de ejemplo para las pruebas
 const testData = {
     projectInfo: {
@@ -3076,6 +3079,14 @@ function resetDashboardState() {
     // Mostrar indicador de carga
     showLoadingState();
     
+    // Resetear filtro de ciclo
+    selectedCycle = 'todos';
+    const cycleContainer = document.getElementById('cycleFilterButtons');
+    if (cycleContainer) {
+        cycleContainer.style.display = 'none';
+        cycleContainer.innerHTML = '';
+    }
+    
     // Limpiar TODA la memoria del objeto testData
     Object.keys(testData).forEach(key => {
         if (Array.isArray(testData[key])) {
@@ -3313,7 +3324,7 @@ function handleMultiProjectExcel(workbook) {
             defectos
         };
         
-        // Permitir seleccionar proyecto
+        // Permitir seleccionar proyecto (sin filtros de ciclo aún)
         showProjectSelector(proyectos, loadedExcelData);
         
     } catch (error) {
@@ -3322,8 +3333,152 @@ function handleMultiProjectExcel(workbook) {
     }
 }
 
+// Detectar y mostrar botones de ciclo para el proyecto seleccionado
+function detectAndShowCycleButtons(nombreProyectoActual, todosProyectos) {
+    const cycleContainer = document.getElementById('cycleFilterButtons');
+    if (!cycleContainer) return;
+    
+    // Extraer el nombre base del proyecto (sin el ciclo)
+    const nombreBase = nombreProyectoActual.replace(/\s*-?\s*ciclo\s*\d+/i, '').trim();
+    console.log('🔍 Buscando ciclos para proyecto base:', nombreBase);
+    
+    // Buscar todos los proyectos que tengan el mismo nombre base
+    const proyectosRelacionados = todosProyectos.filter(p => {
+        const nombreProyecto = p.nombre_proyecto || '';
+        const nombreBaseComparar = nombreProyecto.replace(/\s*-?\s*ciclo\s*\d+/i, '').trim();
+        return nombreBaseComparar.toLowerCase() === nombreBase.toLowerCase();
+    });
+    
+    console.log(`📊 Encontrados ${proyectosRelacionados.length} proyectos relacionados`);
+    
+    // Si solo hay un proyecto, no mostrar botones
+    if (proyectosRelacionados.length <= 1) {
+        cycleContainer.style.display = 'none';
+        cycleContainer.innerHTML = '';
+        console.log('✓ Solo un proyecto, ocultando botones de ciclo');
+        return;
+    }
+    
+    // Extraer ciclos de los proyectos relacionados
+    const ciclosDisponibles = [];
+    proyectosRelacionados.forEach(p => {
+        const cicloMatch = (p.nombre_proyecto || '').match(/ciclo\s*(\d+)/i);
+        if (cicloMatch) {
+            ciclosDisponibles.push({
+                numero: parseInt(cicloMatch[1]),
+                proyecto_id: p.proyecto_id,
+                nombre_completo: p.nombre_proyecto
+            });
+        }
+    });
+    
+    // Ordenar por número de ciclo
+    ciclosDisponibles.sort((a, b) => a.numero - b.numero);
+    
+    console.log('🔄 Ciclos disponibles:', ciclosDisponibles.map(c => `Ciclo ${c.numero}`).join(', '));
+    
+    // Detectar cuál es el ciclo actual
+    const cicloActualMatch = nombreProyectoActual.match(/ciclo\s*(\d+)/i);
+    const cicloActualNumero = cicloActualMatch ? parseInt(cicloActualMatch[1]) : null;
+    
+    // Mostrar el contenedor
+    cycleContainer.style.display = 'flex';
+    cycleContainer.innerHTML = '';
+    
+    // Crear botones para cada ciclo
+    ciclosDisponibles.forEach(ciclo => {
+        const btn = document.createElement('button');
+        btn.className = 'cycle-filter-btn';
+        if (ciclo.numero === cicloActualNumero) {
+            btn.classList.add('active');
+        }
+        btn.innerHTML = `<i class="fas fa-sync-alt"></i> Ciclo ${ciclo.numero}`;
+        btn.onclick = () => switchToCycle(ciclo.proyecto_id, loadedExcelData);
+        cycleContainer.appendChild(btn);
+    });
+    
+    console.log(`✅ Mostrando ${ciclosDisponibles.length} botones de ciclo`);
+}
+
+// Cambiar a otro ciclo del mismo proyecto
+function switchToCycle(proyectoId, allData) {
+    console.log(`🔄 Cambiando al proyecto con ID: ${proyectoId}`);
+    loadProjectData(proyectoId, allData);
+}
+
+// Configurar botones de filtro por ciclo (función legacy - ya no se usa)
+function setupCycleFilters(proyectos) {
+    const cycleContainer = document.getElementById('cycleFilterButtons');
+    if (!cycleContainer) return;
+    
+    // Extraer ciclos únicos de los nombres de proyectos
+    const cycles = new Set();
+    proyectos.forEach(proyecto => {
+        const nombreProyecto = proyecto.nombre_proyecto || '';
+        // Buscar patrones como "Ciclo 1", "Ciclo 2", "CICLO 1", etc.
+        const cicloMatch = nombreProyecto.match(/ciclo\s*(\d+)/i);
+        if (cicloMatch) {
+            cycles.add(`Ciclo ${cicloMatch[1]}`);
+        }
+    });
+    
+    // Si no hay ciclos detectados, ocultar el contenedor
+    if (cycles.size === 0) {
+        cycleContainer.style.display = 'none';
+        return;
+    }
+    
+    // Mostrar el contenedor
+    cycleContainer.style.display = 'flex';
+    
+    // Limpiar contenedor
+    cycleContainer.innerHTML = '';
+    
+    // Botón "Todos"
+    const todosBtn = document.createElement('button');
+    todosBtn.className = 'cycle-filter-btn active';
+    todosBtn.innerHTML = '<i class="fas fa-th"></i> Todos';
+    todosBtn.onclick = () => filterByCycle('todos');
+    cycleContainer.appendChild(todosBtn);
+    
+    // Botones para cada ciclo detectado
+    const sortedCycles = Array.from(cycles).sort((a, b) => {
+        const numA = parseInt(a.match(/\d+/)[0]);
+        const numB = parseInt(b.match(/\d+/)[0]);
+        return numA - numB;
+    });
+    
+    sortedCycles.forEach(cycle => {
+        const btn = document.createElement('button');
+        btn.className = 'cycle-filter-btn';
+        btn.innerHTML = `<i class="fas fa-sync-alt"></i> ${cycle}`;
+        btn.onclick = () => filterByCycle(cycle);
+        cycleContainer.appendChild(btn);
+    });
+    
+    console.log(`✅ Detectados ${cycles.size} ciclos:`, sortedCycles);
+}
+
+// Filtrar proyectos por ciclo
+
 // Mostrar selector de proyecto
 function showProjectSelector(proyectos, allData) {
+    // Agrupar proyectos por nombre base (sin ciclo)
+    const proyectosAgrupados = new Map();
+    
+    proyectos.forEach(proyecto => {
+        const nombreCompleto = proyecto.nombre_proyecto || '';
+        // Extraer nombre base sin el ciclo
+        const nombreBase = nombreCompleto.replace(/\s*-?\s*ciclo\s*\d+/i, '').trim();
+        
+        if (!proyectosAgrupados.has(nombreBase)) {
+            proyectosAgrupados.set(nombreBase, []);
+        }
+        proyectosAgrupados.get(nombreBase).push(proyecto);
+    });
+    
+    console.log(`📊 Proyectos únicos (sin duplicar ciclos): ${proyectosAgrupados.size}`);
+    
     // Crear modal de selección
     const modal = document.createElement('div');
     modal.className = 'project-selector-modal';
@@ -3341,7 +3496,7 @@ function showProjectSelector(proyectos, allData) {
     
     content.innerHTML = `
         <h3 style="margin-bottom: 1rem; color: #1e293b;">Seleccionar Proyecto</h3>
-        <p style="margin-bottom: 1.5rem; color: #64748b;">El archivo contiene ${proyectos.length} proyecto(s). Seleccione cuál desea cargar:</p>
+        <p style="margin-bottom: 1.5rem; color: #64748b;">El archivo contiene ${proyectosAgrupados.size} proyecto(s) único(s). Seleccione cuál desea cargar:</p>
         <div id="projectList" style="margin-bottom: 1.5rem; max-height: 300px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 6px; padding: 0.5rem;"></div>
         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
             <button id="cancelBtn" style="padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #374151; cursor: pointer;">Cancelar</button>
@@ -3349,27 +3504,52 @@ function showProjectSelector(proyectos, allData) {
     `;
     
     const projectList = content.querySelector('#projectList');
-    proyectos.forEach((proyecto, index) => {
+    
+    // Mostrar solo un proyecto por nombre base
+    proyectosAgrupados.forEach((proyectosGrupo, nombreBase) => {
         const projectDiv = document.createElement('div');
         projectDiv.style.cssText = `
             padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 0.5rem; cursor: pointer;
             transition: all 0.2s ease; background: white;
         `;
         
+        // Usar el primer proyecto del grupo para mostrar info
+        const proyectoRepresentante = proyectosGrupo[0];
+        
+        // Determinar si hay múltiples ciclos
+        const tieneCiclos = proyectosGrupo.length > 1;
+        const cicloBadge = tieneCiclos ? 
+            `<span style="background: #3b82f6; color: white; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem;">
+                ${proyectosGrupo.length} ciclos
+            </span>` : '';
+        
         projectDiv.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="flex: 1;">
-                    <div style="font-weight: bold; color: #1e293b; margin-bottom: 0.25rem;">${proyecto.nombre_proyecto}</div>
+                    <div style="font-weight: bold; color: #1e293b; margin-bottom: 0.25rem; display: flex; align-items: center;">
+                        ${nombreBase}
+                        ${cicloBadge}
+                    </div>
                     <div style="font-size: 0.875rem; color: #64748b;">
-                        <span style="font-weight: 500;">ID:</span> ${proyecto.proyecto_id} | 
-                        <span style="font-weight: 500;">Responsable:</span> ${proyecto.responsable_qa}
+                        <span style="font-weight: 500;">ID:</span> ${proyectoRepresentante.proyecto_id} | 
+                        <span style="font-weight: 500;">Responsable:</span> ${proyectoRepresentante.responsable_qa}
                     </div>
                 </div>
             </div>
         `;
         
         projectDiv.addEventListener('click', () => {
-            loadProjectData(proyecto.proyecto_id, allData);
+            // Si hay múltiples ciclos, cargar el primero (generalmente Ciclo 1)
+            // Los botones permitirán cambiar entre ciclos
+            const proyectoACar = proyectosGrupo.sort((a, b) => {
+                const cicloA = (a.nombre_proyecto || '').match(/ciclo\s*(\d+)/i);
+                const cicloB = (b.nombre_proyecto || '').match(/ciclo\s*(\d+)/i);
+                const numA = cicloA ? parseInt(cicloA[1]) : 0;
+                const numB = cicloB ? parseInt(cicloB[1]) : 0;
+                return numA - numB;
+            })[0];
+            
+            loadProjectData(proyectoACar.proyecto_id, allData);
             document.body.removeChild(modal);
         });
         
@@ -3408,6 +3588,9 @@ function loadProjectData(proyectoId, allData) {
         console.log('   • fecha_fin:', proyectoInfo.fecha_fin, '(tipo:', typeof proyectoInfo.fecha_fin, ')');
         console.log('   • fecha_inicio_real:', proyectoInfo.fecha_inicio_real, '(tipo:', typeof proyectoInfo.fecha_inicio_real, ')');
         console.log('   • fecha_fin_real:', proyectoInfo.fecha_fin_real, '(tipo:', typeof proyectoInfo.fecha_fin_real, ')');
+        
+        // Detectar si hay múltiples ciclos para este proyecto
+        detectAndShowCycleButtons(proyectoInfo.nombre_proyecto, allData.proyectos);
         
         // GENERAR TENDENCIA AUTOMÁTICAMENTE desde Detalle_Pruebas y fechas del proyecto
         console.log('🔄 Generando tendencia automática (NO se usa Tendencia_Historica)');
