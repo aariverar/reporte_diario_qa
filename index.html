@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Meta tags para evitar caché -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta http-equiv="Last-Modified" content="0">
+    <meta http-equiv="If-Modified-Since" content="0">
+    <title>SCB - Dashboard Calidad</title>
+    
+    <!-- Favicon usando SVG inline (siempre funciona) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23EC0000'/><text x='50' y='50' font-family='Arial,sans-serif' font-size='40' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>SCB</text></svg>">
+    <!-- Fallback para navegadores antiguos -->
+    <link rel="icon" type="image/x-icon" href="/reporte_diario_qa/favicon.ico?v=20260115">
+    <link rel="shortcut icon" type="image/x-icon" href="/reporte_diario_qa/favicon.ico?v=20260115">
+    
+    <link rel="stylesheet" href="styles.css?v=20251103">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo">
+                        <i class="fas fa-chart-line"></i>
+                        <h1>Santander Consumer Bank - Dashboard Aseguramiento Calidad</h1>
+                    </div>
+                    <div class="project-info">
+                        <div class="project-name" id="projectName">Proyecto: Building Block - Core</div>
+                        <div class="project-dates">
+                            <span class="report-period">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span id="reportStartDate">01/09/2024</span> - <span id="reportEndDate">30/09/2024</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="date-info">
+                        <i class="fas fa-calendar-check"></i>
+                        <span>Generado: <span id="currentDate"></span></span>
+                    </div>
+                    <div class="report-status">
+                        <span class="status-label">Estado:</span>
+                        <span class="status-badge" id="reportStatus">Pruebas QA</span>
+                    </div>
+                    <div class="file-upload-container">
+                        <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display: none;">
+                        <button class="btn-upload" onclick="document.getElementById('excelFile').click()">
+                            <i class="fas fa-upload"></i>
+                            Cargar Archivo
+                        </button>
+                        <!-- Botones de filtro por ciclo -->
+                        <div id="cycleFilterButtons" class="cycle-filter-container" style="display: none;">
+                            <!-- Los botones se generarán dinámicamente -->
+                        </div>
+                        <button class="btn-share" id="selectProjectButton" onclick="openProjectSelector()" style="display: none;">
+                            <i class="fas fa-list-alt"></i>
+                            Seleccionar Proyecto
+                        </button>
+                        <button class="btn-pdf" onclick="handlePDFGeneration()">
+                            <i class="fas fa-file-pdf"></i>
+                            Descargar PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Project Information -->
+            <section class="project-section">
+                <div class="project-details-card">
+                    <div class="project-header collapsible-header" onclick="toggleProjectInfo()">
+                        <h3><i class="fas fa-project-diagram"></i> Información del Proyecto</h3>
+                        <i class="fas fa-chevron-down toggle-icon" id="projectInfoToggle"></i>
+                    </div>
+                    <div class="project-details-grid collapsible-content" id="projectInfoContent">
+                        <div class="detail-item">
+                            <label>Nombre del Proyecto:</label>
+                            <span id="projectNameDetail">Building Block - Core</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Responsable QA:</label>
+                            <span id="qaResponsible">María González</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Fecha de Inicio Planificado:</label>
+                            <span id="projectStartDate">01/09/2024</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Fecha de Cierre Planificado:</label>
+                            <span id="projectEndDate">30/09/2024</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Estado del Proyecto:</label>
+                            <span class="project-status" id="projectStatusDetail">Pruebas QA</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Progreso del Proyecto:</label>
+                            <div class="dual-progress-container">
+                                <!-- Progreso Planificado -->
+                                <div class="progress-item">
+                                    <div class="progress-label">
+                                        <span>Progreso Planificado:</span>
+                                    </div>
+                                    <div class="progress-row">
+                                        <span class="progress-percentage" id="plannedProgressText">65.0%</span>
+                                        <div class="progress-bar planned-progress">
+                                            <div class="progress-fill planned-fill" id="plannedProgress" style="width: 65%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Progreso Real -->
+                                <div class="progress-item">
+                                    <div class="progress-label">
+                                        <span>Progreso Real:</span>
+                                    </div>
+                                    <div class="progress-row">
+                                        <span class="progress-percentage" id="realProgressText">75.0%</span>
+                                        <div class="progress-bar real-progress">
+                                            <div class="progress-fill real-fill" id="realProgress" style="width: 75%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Fecha de Inicio Real:</label>
+                            <span id="projectStartDateReal">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Fecha de Cierre Real:</label>
+                            <span id="projectEndDateReal">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Cantidad Total de Casos de Prueba:</label>
+                            <span class="project-status" id="totalTestCases">0</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Indicadores de Ejecución (Collapsible) -->
+            <section class="indicators-section">
+                <div class="indicators-container">
+                    <div class="project-header collapsible-header" onclick="toggleIndicators()">
+                        <h3><i class="fas fa-chart-line"></i> Indicadores de Ejecución</h3>
+                        <i class="fas fa-chevron-down toggle-icon" id="indicatorsToggle"></i>
+                    </div>
+                    <div class="collapsible-content" id="indicatorsContent">
+                        <!-- KPI Cards -->
+                        <section class="kpi-section">
+                <div class="kpi-card planned">
+                    <div class="kpi-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <h3>Pruebas Planificadas</h3>
+                        <div class="kpi-value">
+                            <span class="number" id="plannedTests">45</span>
+                            <span class="percentage" title="Porcentaje del total aún por ejecutar">30%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card success">
+                    <div class="kpi-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <h3>Pruebas Exitosas</h3>
+                        <div class="kpi-value">
+                            <span class="number" id="successfulTests">85</span>
+                            <span class="percentage" title="Porcentaje del total completado exitosamente">57%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card failure">
+                    <div class="kpi-icon">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <h3>Pruebas Fallidas</h3>
+                        <div class="kpi-value">
+                            <span class="number" id="failedTests">15</span>
+                            <span class="percentage" title="Porcentaje del total con fallas">10%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card pending">
+                    <div class="kpi-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <h3>Pruebas Pendientes</h3>
+                        <div class="kpi-value">
+                            <span class="number" id="pendingTests">5</span>
+                            <span class="percentage" title="Porcentaje del total en estado pendiente">3%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card blocked">
+                    <div class="kpi-icon">
+                        <i class="fas fa-ban"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <h3>Pruebas Bloqueadas</h3>
+                        <div class="kpi-value">
+                            <span class="number" id="blockedTests">0</span>
+                            <span class="percentage" title="Porcentaje del total bloqueadas">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+                <!-- Charts Grid -->
+                <div class="charts-grid">
+                <!-- Test Results Overview -->
+                <div class="chart-container">
+                    <button class="chart-expand-btn" onclick="expandChart('pie', 'Resumen de Resultados')" title="Ver ampliado">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <div class="chart-header">
+                        <h3>Resumen de Resultados</h3>
+                    </div>
+                    <div id="pieChart" class="chart"></div>
+                </div>
+
+                <!-- Test Execution Trend -->
+                <div class="chart-container">
+                    <button class="chart-expand-btn" onclick="expandChart('trend', 'Tendencia de Ejecución del Proyecto')" title="Ver ampliado">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <div class="chart-header">
+                        <h3>Tendencia de Ejecución del Proyecto</h3>
+                    </div>
+                    <div id="trendChart" class="chart"></div>
+                </div>
+
+                <!-- Test Categories -->
+                <div class="chart-container">
+                    <button class="chart-expand-btn" onclick="expandChart('category', 'Pruebas por Escenario')" title="Ver ampliado">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <div class="chart-header">
+                        <h3>Pruebas por Escenario</h3>
+                    </div>
+                    <div id="categoryChart" class="chart"></div>
+                </div>
+                </div><!-- End charts-grid -->
+                    </div><!-- End collapsible-content -->
+                </div><!-- End indicators-container -->
+            </section><!-- End indicators-section -->
+
+            <!-- Indicadores de Defectos (Collapsible) -->
+            <section class="defects-indicators-section">
+                <div class="defects-indicators-container">
+                    <div class="project-header collapsible-header" onclick="toggleDefectsIndicators()">
+                        <h3><i class="fas fa-bug"></i> Indicadores de Defectos</h3>
+                        <i class="fas fa-chevron-down toggle-icon" id="defectsIndicatorsToggle"></i>
+                    </div>
+                    <div class="collapsible-content" id="defectsIndicatorsContent">
+                        <!-- Charts Grid -->
+                        <div class="charts-grid">
+                <!-- Defects Management -->
+                <div class="chart-container">
+                    <button class="chart-expand-btn" onclick="expandChart('defects', 'Defectos por Nivel de Severidad')" title="Ver ampliado">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <div class="chart-header">
+                        <h3>Defectos por Nivel de Severidad</h3>
+                        <div class="defects-stats">
+                            <span class="defect-stat critical">Críticos: <strong id="criticalDefects">2</strong></span>
+                            <span class="defect-stat high">Altos: <strong id="highDefects">5</strong></span>
+                            <span class="defect-stat medium">Medios: <strong id="mediumDefects">8</strong></span>
+                            <span class="defect-stat low">Bajos: <strong id="lowDefects">3</strong></span>
+                        </div>
+                    </div>
+                    <div id="defectsChart" class="chart"></div>
+                </div>
+
+                <!-- Time To Fix Chart -->
+                <div class="chart-container">
+                    <button class="chart-expand-btn" onclick="expandChart('burndown', 'Time To Fix')" title="Ver ampliado">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <div class="chart-header">
+                        <h3>Time To Fix</h3>
+                    </div>
+                    <div id="burndownChart" class="chart"></div>
+                </div>
+
+                <!-- Age of Open Defects -->
+                <div class="chart-container">
+                    <button class="chart-expand-btn" onclick="expandChart('ageOfDefects', 'Age of Open Defects')" title="Ver ampliado">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <div class="chart-header">
+                        <h3>Age of Open Defects</h3>
+                    </div>
+                    <div id="ageOfDefectsChart" class="chart"></div>
+                </div>
+                        </div><!-- End charts-grid -->
+                    </div><!-- End collapsible-content -->
+                </div><!-- End defects-indicators-container -->
+            </section><!-- End defects-indicators-section -->
+
+            <!-- Productividad del Equipo QA (Collapsible) -->
+            <section class="productivity-section">
+                <div class="productivity-container">
+                    <div class="project-header collapsible-header" onclick="toggleProductivity()">
+                        <h3><i class="fas fa-users"></i> Productividad del Equipo QA</h3>
+                        <i class="fas fa-chevron-down toggle-icon" id="productivityToggle"></i>
+                    </div>
+                    <div class="collapsible-content" id="productivityContent">
+                        <!-- Charts Grid -->
+                        <div class="charts-grid">
+                <!-- Daily Execution by Tester Chart -->
+                <div class="chart-container">
+                    <button class="chart-expand-btn" onclick="expandChart('dailyExecution', 'Ejecución Diaria por Ejecutor')" title="Ver ampliado">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <div class="chart-header">
+                        <h3>Ejecución Diaria por Ejecutor</h3>
+                        <div class="execution-stats">
+                            <span class="execution-stat">Total Ejecutores: <strong id="totalExecutors">0</strong></span>
+                            <span class="execution-stat">Promedio Diario: <strong id="avgDailyExecution">0</strong></span>
+                        </div>
+                    </div>
+                    <div id="dailyExecutionChart" class="chart"></div>
+                </div>
+
+                <!-- Total Execution by Tester Pie Chart -->
+                <div class="chart-container">
+                    <button class="chart-expand-btn" onclick="expandChart('executorDistribution', 'Distribución Total por Ejecutor')" title="Ver ampliado">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <div class="chart-header">
+                        <h3>Distribución Total por Ejecutor</h3>
+                    </div>
+                    <div id="executorDistributionChart" class="chart"></div>
+                </div>
+
+                <!-- Project Deliverables Status -->
+                <div class="chart-container">
+                    <button class="chart-expand-btn" onclick="expandChart('deliverables', 'Estado de Entregables del Proyecto')" title="Ver ampliado">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <div class="chart-header">
+                        <h3><i class="fas fa-file-alt"></i> Estado de Entregables</h3>
+                    </div>
+                    <div id="deliverablesChart" class="chart"></div>
+                </div>
+                        </div><!-- End charts-grid -->
+                    </div><!-- End collapsible-content -->
+                </div><!-- End productivity-container -->
+            </section><!-- End productivity-section -->
+
+            <!-- Defects Details Table -->
+            <section class="table-section defects-details">
+                <div class="table-header">
+                    <h3><i class="fas fa-bug"></i> Detalle de Defectos</h3>
+                    <div class="table-controls">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Buscar defectos..." id="defectsSearchInput">
+                        </div>
+                        <div class="filter-controls">
+                            <select id="severityFilter">
+                                <option value="">Todas las severidades</option>
+                                <option value="Crítica">Crítica</option>
+                                <option value="Alta">Alta</option>
+                                <option value="Media">Media</option>
+                                <option value="Baja">Baja</option>
+                            </select>
+                            <select id="statusFilter">
+                                <option value="">Todos los estados</option>
+                                <option value="Open">Open</option>
+                                <option value="Reject">Reject</option>
+                                <option value="Assigned">Assigned</option>
+                                <option value="Under Review">Under Review</option>
+                                <option value="In Progress DEV">In Progress DEV</option>
+                                <option value="Resolved">Resolved</option>
+                                <option value="ReTesting">ReTesting</option>
+                                <option value="ReOpened">ReOpened</option>
+                                <option value="Closed">Closed</option>
+                            </select>
+                        </div>
+                        <button class="btn-export" onclick="exportDefects()">
+                            <i class="fas fa-download"></i>
+                            Exportar
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="defects-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Título</th>
+                                <th>Severidad</th>
+                                <th>Estado</th>
+                                <th>CP Impactados</th>
+                                <th>Asignado a</th>
+                                <th>Fecha Encontrado</th>
+                                <th>Días Abierto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="defectsTableBody">
+                            <!-- Datos dinámicos -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Controles de paginación para defectos -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        <span id="defectsPaginationInfo">Mostrando 1-5 de 0 registros</span>
+                    </div>
+                    <div class="pagination-controls">
+                        <button id="defectsPrevPageBtn" class="pagination-btn" disabled>
+                            <i class="fas fa-chevron-left"></i>
+                            Anterior
+                        </button>
+                        <div class="page-numbers" id="defectsPageNumbers">
+                            <!-- Números de página dinámicos -->
+                        </div>
+                        <button id="defectsNextPageBtn" class="pagination-btn">
+                            Siguiente
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="items-per-page">
+                        <label>Mostrar:</label>
+                        <select id="defectsItemsPerPageSelect">
+                            <option value="5" selected>5</option>
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">Todos</option>
+                        </select>
+                        <span>por página</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Test Details Table -->
+            <section class="table-section">
+                <div class="table-header">
+                    <h3>Detalles de Ejecución</h3>
+                    <div class="table-controls">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Buscar por ID, nombre, escenario, estado o ejecutor..." id="searchInput">
+                        </div>
+                        <div class="filter-controls">
+                            <select id="testStatusFilter">
+                                <option value="">Todos los estados</option>
+                                <option value="planned">Planificada</option>
+                                <option value="success">Exitosa</option>
+                                <option value="failure">Fallida</option>
+                                <option value="pending">Pendiente</option>
+                                <option value="blocked">Bloqueada</option>
+                                <option value="dismissed">Desestimado</option>
+                            </select>
+                        </div>
+                        <button class="btn-export">
+                            <i class="fas fa-download"></i>
+                            Exportar
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="test-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre de la Prueba</th>
+                                <th>Escenario</th>
+                                <th>Estado</th>
+                                <th>Fecha Ejecución</th>
+                                <th>Ejecutor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="testTableBody">
+                            <!-- Datos dinámicos -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Controles de paginación -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        <span id="paginationInfo">Mostrando 1-5 de 0 registros</span>
+                    </div>
+                    <div class="pagination-controls">
+                        <button id="prevPageBtn" class="pagination-btn" disabled>
+                            <i class="fas fa-chevron-left"></i>
+                            Anterior
+                        </button>
+                        <div class="page-numbers" id="pageNumbers">
+                            <!-- Números de página dinámicos -->
+                        </div>
+                        <button id="nextPageBtn" class="pagination-btn">
+                            Siguiente
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="items-per-page">
+                        <label>Mostrar:</label>
+                        <select id="itemsPerPageSelect">
+                            <option value="5" selected>5</option>
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">Todos</option>
+                        </select>
+                        <span>por página</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-main">
+            </div>
+            <div class="footer-info">
+                <div class="footer-copyright">
+                    © Santander Consumer Bank - Aseguramiento de Calidad
+                </div>
+                <div class="footer-credits">
+                    Powered by Equipo QA | Support: arivera_scb@santander.com.pe - 2025
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal para gráficos ampliados -->
+    <div id="chartModal" class="chart-modal-overlay" style="display: none;" onclick="closeChartModal(event)">
+        <div class="chart-modal-content" onclick="event.stopPropagation()">
+            <div class="chart-modal-header">
+                <h2 id="chartModalTitle" class="chart-modal-title">Gráfico Ampliado</h2>
+                <button class="chart-modal-close" onclick="closeChartModal()">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+            <div class="chart-modal-body">
+                <div id="chartModalContainer" class="chart-modal-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para compartir enlace -->
+    <div id="shareModal" class="chart-modal-overlay" style="display: none;" onclick="closeShareModal(event)">
+        <div class="chart-modal-content" onclick="event.stopPropagation()">
+            <div class="chart-modal-header">
+                <h2 class="chart-modal-title">Compartir Dashboard</h2>
+                <button class="chart-modal-close" onclick="closeShareModal()">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+            <div class="chart-modal-body">
+                <div class="share-content">
+                    <p><i class="fas fa-info-circle"></i> Comparte este enlace para que otros puedan ver los mismos datos del dashboard:</p>
+                    
+                    <!-- Mostrar versión acortada del enlace -->
+                    <div class="share-link-preview">
+                        <span id="shareableLinkDisplay" class="shortened-url"></span>
+                        <small class="url-note">(enlace acortado para visualización)</small>
+                    </div>
+                    
+                    <!-- Campo oculto con enlace completo para copiar -->
+                    <div class="share-link-container">
+                        <input type="text" id="shareableLink" readonly class="share-link-input" style="display: none;">
+                        <button onclick="copyShareableLink()" class="btn-copy">
+                            <i class="fas fa-copy"></i> Copiar Enlace Completo
+                        </button>
+                    </div>
+                    
+                    <div class="share-info">
+                        <small><i class="fas fa-exclamation-triangle"></i> Este enlace contiene todos los datos del archivo cargado. Compártelo solo con personas autorizadas.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Función para toggle de Información del Proyecto
+        function toggleProjectInfo() {
+            const content = document.getElementById('projectInfoContent');
+            const icon = document.getElementById('projectInfoToggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+
+        // Función para toggle de Indicadores de Ejecución
+        function toggleIndicators() {
+            const content = document.getElementById('indicatorsContent');
+            const icon = document.getElementById('indicatorsToggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+
+        // Función para toggle de Indicadores de Defectos
+        function toggleDefectsIndicators() {
+            const content = document.getElementById('defectsIndicatorsContent');
+            const icon = document.getElementById('defectsIndicatorsToggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+
+        // Función para toggle de Productividad del Equipo QA
+        function toggleProductivity() {
+            const content = document.getElementById('productivityContent');
+            const icon = document.getElementById('productivityToggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+    </script>
+
+    <script src="script.js?v=20251103"></script>
+</body>
+</html>
