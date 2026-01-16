@@ -1,0 +1,7 @@
+# Asegurar que los archivos binarios se manejen correctamente
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.xlsx binary
