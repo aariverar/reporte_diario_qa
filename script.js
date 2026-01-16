@@ -434,23 +434,30 @@ function initializeDashboard() {
     const totalTests = testData.summary.planned + testData.summary.successful + 
                       testData.summary.failed + testData.summary.pending + blockedCount;
     
+    console.log('🔍 VALORES EN testData.summary:');
+    console.log(`   • testData.summary.planned: ${testData.summary.planned} (tipo: ${typeof testData.summary.planned})`);
+    console.log(`   • testData.summary.successful: ${testData.summary.successful} (tipo: ${typeof testData.summary.successful})`);
+    console.log(`   • testData.summary.failed: ${testData.summary.failed} (tipo: ${typeof testData.summary.failed})`);
+    console.log(`   • testData.summary.pending: ${testData.summary.pending} (tipo: ${typeof testData.summary.pending})`);
+    console.log(`   • testData.summary.blocked: ${testData.summary.blocked} (tipo: ${typeof testData.summary.blocked})`);
+    console.log(`   • testData.summary.dismissed: ${testData.summary.dismissed} (tipo: ${typeof testData.summary.dismissed})`);
+    
     // Actualizar KPIs con la nueva lógica
     document.getElementById('plannedTests').textContent = testData.summary.planned;
     document.getElementById('successfulTests').textContent = testData.summary.successful;
     document.getElementById('failedTests').textContent = testData.summary.failed;
     document.getElementById('pendingTests').textContent = testData.summary.pending;
-    console.log(`🔍 DEBUGGING DOM - VALOR FINAL MOSTRADO EN PENDIENTES: ${testData.summary.pending}`);
     
     // Actualizar pruebas bloqueadas
     document.getElementById('blockedTests').textContent = blockedCount;
     
-    console.log('🎯 ACTUALIZANDO ELEMENTOS DOM:');
+    console.log('🎯 VALORES MOSTRADOS EN TARJETAS (DOM):');
     console.log(`   • Planificadas: ${testData.summary.planned}`);
-    console.log(`   • Exitosas: ${testData.summary.successful}`);
+    console.log(`   • Exitosas: ${testData.summary.successful} ⚠️ VERIFICAR ESTE VALOR`);
     console.log(`   • Fallidas: ${testData.summary.failed}`);
     console.log(`   • Pendientes: ${testData.summary.pending}`);
     console.log(`   • Bloqueadas: ${blockedCount}`);
-    console.log(`   • Total: ${totalTests}`);
+    console.log(`   • Total calculado: ${totalTests}`);
     
     // Actualizar porcentajes basados en la nueva lógica de progreso
     updateKPIProgressPercentages(totalTests);
@@ -1368,15 +1375,15 @@ function updateAgeOfDefectsChart(defectsData) {
         console.log(`  ${idx + 1}. ${d.title || d.id}: estado="${d.status}" (tipo: ${typeof d.status})`);
     });
 
-    // Filtrar solo defectos con estado "open" o "abierto"
+    // Filtrar solo defectos con estado "open", "abierto" o "retesting"
     const openDefects = defectsData.filter(d => {
         const estado = (d.status || d.estado || d.Estado || '').toString().toLowerCase().trim();
-        const isOpen = estado === 'open' || estado === 'abierto';
+        const isOpen = estado === 'open' || estado === 'abierto' || estado === 'retesting';
         console.log(`  Defecto "${d.title || d.id}": estado="${estado}" → ${isOpen ? 'INCLUIR' : 'EXCLUIR'}`);
         return isOpen;
     });
 
-    console.log(`🔓 Defectos abiertos (Open): ${openDefects.length} de ${defectsData.length}`);
+    console.log(`🔓 Defectos abiertos (Open/ReTesting): ${openDefects.length} de ${defectsData.length}`);
 
     if (openDefects.length === 0) {
         const layout = {
@@ -1927,8 +1934,12 @@ function populateTestTable() {
     const tableBody = document.getElementById('testTableBody');
     if (!tableBody) return;
     
+    console.log('🔍 populateTestTable() - Inicio');
+    console.log(`📊 testData.testDetails tiene ${testData.testDetails ? testData.testDetails.length : 0} pruebas`);
+    
     // Verificar si hay datos de pruebas
     if (!testData.testDetails || testData.testDetails.length === 0) {
+        console.log('⚠️ No hay datos de testDetails');
         tableBody.innerHTML = `
             <tr>
                 <td colspan="6" class="no-data-message">
@@ -1943,6 +1954,14 @@ function populateTestTable() {
         updatePaginationControls(0, 0);
         return;
     }
+    
+    // Contar estados en testDetails para debugging
+    const estadosCount = {};
+    testData.testDetails.forEach(test => {
+        const estado = test.status || 'sin_estado';
+        estadosCount[estado] = (estadosCount[estado] || 0) + 1;
+    });
+    console.log('📊 Conteo de estados en testDetails:', estadosCount);
     
     // Si no hay filtro aplicado, usar todas las pruebas
     if (filteredTests.length === 0) {
@@ -3671,34 +3690,35 @@ function calculateSummaryFromDetails(pruebas) {
         console.log(`DEBUG CONTEO: Estado original "${estadoOriginal}" -> mapeado "${estadoMapeado}"`);
         
         switch (estadoMapeado.toLowerCase()) {
-            case 'exitosa':
             case 'success':
+            case 'exitosa':
                 exitosas++;
                 console.log(`  ✅ Contando como EXITOSA (total exitosas: ${exitosas})`);
                 break;
+            case 'failure':
             case 'fallida':
             case 'failed':
-            case 'failure':
                 fallidas++;
                 console.log(`  ❌ Contando como FALLIDA (total fallidas: ${fallidas})`);
                 break;
-            case 'pendiente':
             case 'pending':
+            case 'pendiente':
                 pendientes++;
                 console.log(`  ⏳ Contando como PENDIENTE (total pendientes: ${pendientes})`);
                 break;
-            case 'bloqueada':
             case 'blocked':
+            case 'bloqueada':
                 bloqueadas++;
                 console.log(`  🚫 Contando como BLOQUEADA (total bloqueadas: ${bloqueadas})`);
                 break;
-            case 'desestimado':
             case 'dismissed':
+            case 'desestimado':
                 desestimadas++;
                 console.log(`  🚯 Contando como DESESTIMADA (total desestimadas: ${desestimadas})`);
                 break;
-            case 'planificada':
             case 'planned':
+            case 'planificada':
+            case 'planificado':
             case '':
             case undefined:
             case null:
@@ -3762,27 +3782,30 @@ function calculateCategoriesFromDetails(pruebas) {
         const estadoMapeado = mapStatus(estadoOriginal);
         
         switch (estadoMapeado.toLowerCase()) {
-            case 'exitosa':
             case 'success':
+            case 'exitosa':
                 categorias[escenario].exitosas++;
                 break;
+            case 'failure':
             case 'fallida':
             case 'failed':
-            case 'failure':
                 categorias[escenario].fallidas++;
                 break;
-            case 'pendiente':
             case 'pending':
+            case 'pendiente':
                 categorias[escenario].pendientes++;
                 break;
-            case 'bloqueada':
             case 'blocked':
+            case 'bloqueada':
                 categorias[escenario].bloqueadas++;
                 break;
-            case 'desestimado':
             case 'dismissed':
+            case 'desestimado':
                 categorias[escenario].desestimadas++;
                 break;
+            case 'planned':
+            case 'planificada':
+            case 'planificado':
             case '':
             case undefined:
             case null:
@@ -3851,21 +3874,21 @@ function generateTrendFromDetails(pruebas, proyectoInfo) {
         
         // Contar en el total general
         switch (estado.toLowerCase()) {
-            case 'exitosa':
             case 'success':
+            case 'exitosa':
                 conteoTotal.exitosas++;
                 break;
+            case 'failure':
             case 'fallida':
             case 'failed':
-            case 'failure':
                 conteoTotal.fallidas++;
                 break;
-            case 'pendiente':
             case 'pending':
+            case 'pendiente':
                 conteoTotal.pendientes++;
                 break;
-            case 'bloqueada':
             case 'blocked':
+            case 'bloqueada':
                 conteoTotal.bloqueadas++;
                 break;
         }
@@ -3893,21 +3916,21 @@ function generateTrendFromDetails(pruebas, proyectoInfo) {
                 }
                 
                 switch (estado.toLowerCase()) {
-                    case 'exitosa':
                     case 'success':
+                    case 'exitosa':
                         pruebasPorDia[fechaKey].successful++;
                         break;
+                    case 'failure':
                     case 'fallida':
                     case 'failed':
-                    case 'failure':
                         pruebasPorDia[fechaKey].failed++;
                         break;
-                    case 'pendiente':
                     case 'pending':
+                    case 'pendiente':
                         pruebasPorDia[fechaKey].pending++;
                         break;
-                    case 'bloqueada':
                     case 'blocked':
+                    case 'bloqueada':
                         pruebasPorDia[fechaKey].blocked++;
                         break;
                 }
@@ -3916,21 +3939,22 @@ function generateTrendFromDetails(pruebas, proyectoInfo) {
             // Casos sin fecha: se agregan al contador de "sin fecha" 
             // y se distribuirán al último día del proyecto
             switch (estado.toLowerCase()) {
-                case 'exitosa':
                 case 'success':
+                case 'success':
+                case 'exitosa':
                     pruebasSinFecha.successful++;
                     break;
+                case 'failure':
                 case 'fallida':
                 case 'failed':
-                case 'failure':
                     pruebasSinFecha.failed++;
                     break;
-                case 'pendiente':
                 case 'pending':
+                case 'pendiente':
                     pruebasSinFecha.pending++;
                     break;
-                case 'bloqueada':
                 case 'blocked':
+                case 'bloqueada':
                     pruebasSinFecha.blocked++;
                     break;
             }
@@ -4363,24 +4387,36 @@ function formatDateForDashboard(dateValue) {
 
 // Mapear estado de Excel a dashboard
 function mapExcelStatusToDashboard(status) {
-    const statusMap = {
-        'Exitosa': 'success',
-        'Fallida': 'failure',
-        'Pendiente': 'pending',
-        'Bloqueada': 'blocked',
-        'Desestimado': 'dismissed',
-        'Planificada': 'planned'
-    };
+    // Usar la función mapStatus que ya tiene toda la lógica de mapeo
+    // y es más robusta
+    const mappedStatus = mapStatus(status);
     
-    console.log(`🔄 mapExcelStatusToDashboard: "${status}" → "${statusMap[status] || 'pending'}"`);
-    return statusMap[status] || 'pending';
+    console.log(`🔄 mapExcelStatusToDashboard: "${status}" → "${mappedStatus}"`);
+    
+    // mapStatus devuelve valores como 'success', 'failure', 'pending', etc.
+    // que ya son compatibles con el dashboard
+    return mappedStatus;
 }
 
 // Actualizar dashboard con datos transformados
 function updateDashboardWithTransformedData(data) {
     try {
-        // Actualizar datos globales
-        Object.assign(testData, data);
+        console.log('🔄 Actualizando dashboard con datos transformados...');
+        console.log('📊 Datos recibidos - data.summary:', JSON.stringify(data.summary, null, 2));
+        
+        // IMPORTANTE: Reemplazar completamente testData para evitar datos residuales
+        // No usar Object.assign porque hace shallow copy y puede dejar datos viejos
+        testData.projectInfo = { ...data.projectInfo };
+        testData.summary = { ...data.summary };
+        testData.trend = [...(data.trend || [])];
+        testData.categories = [...(data.categories || [])];
+        testData.defects = data.defects ? {
+            summary: { ...data.defects.summary },
+            details: [...(data.defects.details || [])]
+        } : { summary: {}, details: [] };
+        testData.testDetails = [...(data.testDetails || [])];
+        
+        console.log('📊 testData.summary DESPUÉS de actualizar:', JSON.stringify(testData.summary, null, 2));
         
         // Reiniciar variables de paginación
         filteredTests = [];
@@ -4391,9 +4427,16 @@ function updateDashboardWithTransformedData(data) {
         defectsCurrentPage = 1;
         
         // Actualizar interfaz
+        console.log('🔄 Llamando a initializeDashboard()...');
         initializeDashboard();
+        
+        console.log('🔄 Llamando a createCharts()...');
         createCharts();
+        
+        console.log('🔄 Llamando a populateTestTable()...');
         populateTestTable();
+        
+        console.log('🔄 Llamando a populateDefectsTable()...');
         populateDefectsTable();
         
         // Guardar en localStorage para el editor
